@@ -23,7 +23,7 @@ Cấu hình công khai cho widget. Không chứa khoá hay webhook.
   "types": [{ "id": "function", "label": "Đề xuất chức năng", "kind": "function" }],
   "features": { "scopePicker": true, "elementPicker": true, "voice": true, "attachments": true,
                 "planApproval": false, "successCriteria": false, "screenshot": "optional", "models": [],
-                "textSelection": false, "selectionScope": "", "hidePaths": [] },
+                "textSelection": false, "selectionScope": "", "selectionRoles": [], "hidePaths": [] },
   "theme": { "primary": "#1d4ed8", "position": "bottom-right" } }
 ```
 

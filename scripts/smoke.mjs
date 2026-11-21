@@ -236,9 +236,9 @@ try {
   ok(badHide.status === 400, "hidePaths không bắt đầu bằng “/” → 400");
   const badScope = await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { selectionScope: "<script>" } } });
   ok(badScope.status === 400, "selectionScope có ngoặc nhọn → 400");
-  const okEntry = await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { textSelection: true, selectionScope: "#lesson-content", hidePaths: ["/thi", "/exam-take"] } } });
+  const okEntry = await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { textSelection: true, selectionScope: "#lesson-content", selectionRoles: ["INSTRUCTOR"], hidePaths: ["/thi", "/exam-take"] } } });
   const cfgE = (await call("GET", `/api/v1/config?project=${slug}`)).data.features;
-  ok(okEntry.status === 200 && cfgE.textSelection === true && cfgE.selectionScope === "#lesson-content" && cfgE.hidePaths.join() === "/thi,/exam-take" && cfgE.screenshot === "default", "bật bôi đen + vùng + trang ẩn → widget nhận được, không mất tính năng khác", JSON.stringify(cfgE));
+  ok(okEntry.status === 200 && cfgE.textSelection === true && cfgE.selectionScope === "#lesson-content" && cfgE.selectionRoles.join() === "INSTRUCTOR" && cfgE.hidePaths.join() === "/thi,/exam-take" && cfgE.screenshot === "default", "bật bôi đen + vùng + trang ẩn → widget nhận được, không mất tính năng khác", JSON.stringify(cfgE));
   const ctxFb = await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Số liệu sai ở bảng điểm", scope: "page", source: "widget", pagePath: "/learn/abc/lessons/9?tab=diem", pageUrl: "https://app.example.com/learn/abc/lessons/9?tab=diem", contentRef: "lesson:9", extra: { pageTitle: "Bài 9", viewport: "390x800", course: "abc" } } });
   const ctxGet = await call("GET", `/api/v1/feedback/${ctxFb.data.feedback?.id}`, { token: staff });
   const cf = ctxGet.data.feedback ?? {};

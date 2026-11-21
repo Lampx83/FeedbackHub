@@ -20,6 +20,8 @@ export type Features = {
   textSelection: boolean;
   /** Chỉ hiện bong bóng khi bôi đen bên trong vùng khớp bộ chọn CSS này (vd. "#lesson-content, article"). Rỗng = cả trang. */
   selectionScope: string;
+  /** Chỉ những `role` (trong token) này mới thấy bong bóng bôi đen. Rỗng = mọi người gửi được góp ý. */
+  selectionRoles: string[];
   /**
    * Tiền tố đường dẫn mà widget tự ẩn mọi lối vào (nút nổi, nút gắn trong trang, bong bóng bôi đen), vd. trang làm bài thi.
    * So với `location.pathname` của ứng dụng chủ (gồm cả tiền tố đường dẫn nếu ứng dụng chạy dưới đường dẫn con).
@@ -38,6 +40,7 @@ export const DEFAULT_FEATURES: Features = {
   models: [],
   textSelection: false,
   selectionScope: "",
+  selectionRoles: [],
   hidePaths: [],
 };
 

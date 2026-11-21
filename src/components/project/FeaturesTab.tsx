@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AddButton, ConfirmDialog, Modal } from "../ui/Modal";
-import { Alert, Button, Card, EmptyState, Field, Input, Spinner, Switch, Textarea, Toolbar } from "../ui/primitives";
+import { Alert, Button, Card, EmptyState, Field, Input, Spinner, Switch, TagsInput, Textarea, Toolbar } from "../ui/primitives";
 import { SaveBar, useSaveBar } from "./SaveBar";
 import type { ProjectData, Save } from "./types";
 
@@ -51,12 +51,13 @@ function EntryPointsSection({ project, save }: { project: ProjectData; save: Sav
   const init = () => ({
     textSelection: project.features.textSelection ?? false,
     selectionScope: project.features.selectionScope ?? "",
+    selectionRoles: project.features.selectionRoles ?? [],
     hidePaths: (project.features.hidePaths ?? []).join("\n"),
   });
   const [v, setV] = useState(init);
   const bar = useSaveBar(save);
   const cur = init();
-  const dirty = v.textSelection !== cur.textSelection || v.selectionScope.trim() !== cur.selectionScope || linesOf(v.hidePaths).join("\n") !== cur.hidePaths;
+  const dirty = v.textSelection !== cur.textSelection || v.selectionScope.trim() !== cur.selectionScope || v.selectionRoles.join("\n") !== cur.selectionRoles.join("\n") || linesOf(v.hidePaths).join("\n") !== cur.hidePaths;
   const badPath = linesOf(v.hidePaths).find((p) => !p.startsWith("/") || /\s/.test(p));
   const code = (s: string) => <code className="font-mono text-[13px]">{s}</code>;
 
@@ -78,6 +79,9 @@ function EntryPointsSection({ project, save }: { project: ProjectData; save: Sav
         <Field label="Chỉ hiện bong bóng trong vùng (bộ chọn CSS, tuỳ chọn)" hint={<>Ví dụ {code("#lesson-content, article")}. Để trống = cả trang. Ô nhập liệu không bao giờ hiện bong bóng.</>}>
           <Input value={v.selectionScope} disabled={!v.textSelection} maxLength={200} placeholder="#lesson-content" onChange={(e) => setV((s) => ({ ...s, selectionScope: e.target.value }))} />
         </Field>
+        <Field label="Ai được góp ý khi bôi đen (vai trò, tuỳ chọn)" hint={<>Giá trị {code("role")} trong token của người dùng, ví dụ {code("INSTRUCTOR")}. Để trống = mọi người gửi được góp ý đều thấy bong bóng. Nút góp ý chung (nút nổi, nút trên header) luôn hiện cho mọi người, không phụ thuộc ô này.</>}>
+          <TagsInput value={v.selectionRoles} onChange={(r) => setV((s) => ({ ...s, selectionRoles: r }))} placeholder="vd. INSTRUCTOR  (Enter để thêm)" />
+        </Field>
         <Field
           label="Trang không hiện lối vào nào"
           hint={<>Mỗi dòng một tiền tố đường dẫn, ví dụ {code("/thi")} ẩn cả {code("/thi/abc")}. Áp dụng cho nút nổi, nút đặt trong trang và bong bóng bôi đen — dùng cho trang làm bài thi, trang trình chiếu.</>}
@@ -93,7 +97,7 @@ function EntryPointsSection({ project, save }: { project: ProjectData; save: Sav
         saved={bar.saved}
         onSave={() => {
           if (badPath) return;
-          void bar.run({ features: { textSelection: v.textSelection, selectionScope: v.selectionScope.trim(), hidePaths: linesOf(v.hidePaths) } });
+          void bar.run({ features: { textSelection: v.textSelection, selectionScope: v.selectionScope.trim(), selectionRoles: v.selectionRoles, hidePaths: linesOf(v.hidePaths) } });
         }}
         onReset={() => setV(init())}
       />

@@ -7,7 +7,7 @@
  * offset-x, offset-y, trigger, fab="false", mount.
  * Lối vào không cần viết mã: đặt <span data-feedbackhub-launcher hidden></span> ở chỗ muốn có nút (vd. thanh header —
  * widget vẽ nút và bỏ `hidden` khi sẵn sàng); bong bóng "Góp ý đoạn này" khi bôi đen chữ và danh sách trang ẩn lối vào
- * bật trên hub (features.textSelection / selectionScope / hidePaths).
+ * bật trên hub (features.textSelection / selectionScope / selectionRoles / hidePaths).
  * API JS: window.FeedbackHub = { init(opts), open(), close(), refresh(), hideFab(bool), destroy() }.
  * Hợp đồng API: docs/API.md. Nguyên tắc: không bao giờ gắn dữ liệu ngoài vào innerHTML; hỏng thì im lặng
  * (ẩn nút, console.warn) chứ không làm hỏng trang chủ.
@@ -645,7 +645,7 @@
     }
 
     /* — cấu hình — */
-    var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, screenshot: "optional", models: [], textSelection: false, selectionScope: "", hidePaths: [] }, cfg.features || {});
+    var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, screenshot: "optional", models: [], textSelection: false, selectionScope: "", selectionRoles: [], hidePaths: [] }, cfg.features || {});
     var models = Array.isArray(feat.models) ? feat.models.filter(function (m) { return m && typeof m.id === "string"; }) : [];
     var allTypes = (Array.isArray(cfg.types) ? cfg.types : []).filter(function (x) { return x && typeof x.id === "string"; });
     var formTypes = allTypes.filter(function (x) { return x.kind !== "question"; });
@@ -1820,6 +1820,15 @@
       selText = null;
       selEl = null;
     }
+    /* Chỉ những vai trò (claim `role` của token) trong features.selectionRoles được thấy bong bóng; rỗng = mọi người.
+       Đây chỉ là cách ẩn giao diện — ai gửi được góp ý vẫn dùng được nút chung. */
+    function selectionAllowed() {
+      var roles = Array.isArray(feat.selectionRoles) ? feat.selectionRoles : [];
+      if (!roles.length) return true;
+      var tok = auth.peek();
+      var role = tok ? String(jwtPayload(tok).role || "").toLowerCase() : "";
+      return !!role && roles.some(function (r) { return String(r).toLowerCase() === role; });
+    }
     function selectable(node) {
       var el = node && (node.nodeType === 1 ? node : node.parentElement);
       if (!el || !el.closest) return null;
@@ -1829,7 +1838,7 @@
     }
     function evalSelection() {
       if (!selBtn) return;
-      if (S.open || S.picking || S.pathHidden) { hideSelBubble(); return; }
+      if (S.open || S.picking || S.pathHidden || !selectionAllowed()) { hideSelBubble(); return; }
       var s = document.getSelection && document.getSelection();
       if (!s || s.isCollapsed || !s.rangeCount) { hideSelBubble(); return; }
       var r = s.getRangeAt(0);
