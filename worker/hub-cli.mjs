@@ -84,7 +84,7 @@ function render({ feedback: fb, project }) {
   if (fb.extra) L.push("## extra (dữ liệu riêng của ứng dụng)", wrap(JSON.stringify(fb.extra)));
   if (fb.attachments?.length) {
     L.push("## Tệp đính kèm — PHẢI tải và đọc trước khi làm (lệnh: attachment <id> <aid> -o <tệp>)");
-    for (const a of fb.attachments) L.push(`- aid=${a.id} · ${a.fileName} · ${a.mimeType} · ${a.sizeBytes ?? "?"} byte`);
+    for (const a of fb.attachments) L.push(`- aid=${a.id} · ${a.fileName}${/^trang-chup/.test(a.fileName) ? " (ẢNH CHỤP TRANG lúc gửi)" : ""} · ${a.mimeType} · ${a.sizeBytes ?? "?"} byte`);
   }
   L.push("## Luồng trao đổi (cũ → mới; tin MỚI NHẤT của người gửi là ý định hiện tại)");
   if (!fb.messages?.length) L.push("(chưa có tin nhắn)");

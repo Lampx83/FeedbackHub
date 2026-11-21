@@ -33,8 +33,40 @@ export function FeaturesTab({ project, save }: { project: ProjectData; save: Sav
         </div>
         <SaveBar dirty={dirty} busy={bar.busy} error={bar.error} saved={bar.saved} onSave={() => void bar.run({ features: flags })} onReset={() => setFlags(Object.fromEntries(FLAGS.map((f) => [f.key, project.features[f.key]])) as Record<FlagKey, boolean>)} />
       </Card>
+      <ScreenshotSection project={project} save={save} />
       <ModelsSection project={project} save={save} />
     </div>
+  );
+}
+
+const SHOT_OPTIONS = [
+  { value: "default", label: "Bật sẵn", description: "Ô “đính kèm ảnh chụp trang” được chọn sẵn; người gửi bỏ chọn được. Hợp với góp ý về nội dung và dữ liệu — người xử lý thấy đúng cái người gửi thấy." },
+  { value: "optional", label: "Cho chọn", description: "Có ô đính kèm ảnh chụp trang nhưng mặc định không chọn." },
+  { value: "off", label: "Tắt", description: "Không chụp trang. Vẫn lưu đường dẫn, tiêu đề trang và ngữ cảnh do ứng dụng gửi." },
+] as const;
+
+function ScreenshotSection({ project, save }: { project: ProjectData; save: Save }) {
+  const [mode, setMode] = useState<(typeof SHOT_OPTIONS)[number]["value"]>(project.features.screenshot ?? "optional");
+  const bar = useSaveBar(save);
+  return (
+    <Card className="p-5">
+      <h2 className="text-base font-semibold">Ảnh chụp trang kèm góp ý</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Khi gửi, widget chụp lại trang người dùng đang xem và đính kèm vào góp ý (tệp <code className="font-mono text-[13px]">trang-chup.png</code>). Ảnh chỉ người quản trị dự án xem được; ô mật khẩu luôn bị che, và ứng dụng có thể che thêm vùng nhạy cảm bằng thuộc tính <code className="font-mono text-[13px]">data-feedbackhub-mask</code>.
+      </p>
+      <div className="mt-3 space-y-2">
+        {SHOT_OPTIONS.map((o) => (
+          <label key={o.value} className="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-3 has-[:checked]:border-brand">
+            <input type="radio" name="shot" className="mt-1" checked={mode === o.value} onChange={() => setMode(o.value)} />
+            <span>
+              <span className="block text-sm font-medium">{o.label}</span>
+              <span className="block text-sm text-muted">{o.description}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <SaveBar dirty={mode !== (project.features.screenshot ?? "optional")} busy={bar.busy} error={bar.error} saved={bar.saved} onSave={() => void bar.run({ features: { screenshot: mode } })} onReset={() => setMode(project.features.screenshot ?? "optional")} />
+    </Card>
   );
 }
 

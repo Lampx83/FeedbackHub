@@ -140,6 +140,7 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
 
   const target = fb?.pageTarget ? splitTarget(fb.pageTarget) : null;
   const hasSuggestion = fb?.suggestion && (fb.suggestion.before || fb.suggestion.after);
+  const extraObj = fb?.extra && typeof fb.extra === "object" ? (fb.extra as Record<string, unknown>) : null;
   const extraJson = fb?.extra && typeof fb.extra === "object" && Object.keys(fb.extra as object).length ? JSON.stringify(fb.extra, null, 2) : null;
 
   return (
@@ -198,6 +199,12 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
                       )}
                     </Row>
                   ) : null}
+                  {extraObj?.pageTitle ? <Row label="Tiêu đề trang">{String(extraObj.pageTitle)}</Row> : null}
+                  {fb.pageUrl ? (
+                    <Row label="Địa chỉ đầy đủ">
+                      <code className="break-all font-mono text-xs text-muted">{fb.pageUrl}</code>
+                    </Row>
+                  ) : null}
                   {target ? (
                     <Row label="Phần tử đã chỉ">
                       {target.text ? <span className="block">“{target.text}”</span> : null}
@@ -236,6 +243,14 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
                   <p className="text-sm text-muted">Không có tệp đính kèm.</p>
                 ) : (
                   <>
+                    <div className="mb-3 flex flex-wrap gap-3">
+                      {fb.attachments.filter((a) => a.mimeType.startsWith("image/")).map((a) => (
+                        <a key={a.id} href={`/api/admin/attachments/${a.id}`} target="_blank" rel="noopener noreferrer" title={a.fileName}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`/api/admin/attachments/${a.id}`} alt={a.fileName} loading="lazy" className="max-h-44 max-w-full rounded-lg border border-line object-contain" />
+                        </a>
+                      ))}
+                    </div>
                     <ul className="divide-y divide-line rounded-lg border border-line">
                       {fb.attachments.map((a) => (
                         <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">

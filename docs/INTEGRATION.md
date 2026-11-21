@@ -162,6 +162,7 @@ Hết. Nút 💡 hiện ở góc phải dưới cho người đã đăng nhập;
 | `data-offset-x`, `data-offset-y` | `20` | Cách mép (px), 0–200 |
 | `data-trigger` | — | Bộ chọn CSS của nút **có sẵn** trong ứng dụng; bấm vào đó mở widget (và ẩn nút nổi mặc định) |
 | `data-fab` | `true` | `false` = không vẽ nút nổi (dùng cùng `data-trigger` hoặc `FeedbackHub.open()`) |
+| `data-mask` | — | Bộ chọn CSS các vùng cần **che trong ảnh chụp trang** (cộng thêm với `[data-feedbackhub-mask]`, ô mật khẩu và ô `autocomplete=cc-*` luôn bị che) |
 | `data-mount` | — | Bộ chọn CSS: nhúng bảng góp ý **vào trang** thay vì ngăn kéo |
 
 Giao diện (màu, bo góc, phông…) đặt ở bảng điều khiển hoặc bằng biến CSS — xem [THEMING.md](THEMING.md).
@@ -204,6 +205,36 @@ Mỗi góp ý có thể mang ngữ cảnh để người (hoặc AI) tìm đúng
   });
   ```
 - **Dữ liệu riêng**: `extra` trong `getContext` (hoặc khi gọi API từ máy chủ) — object tuỳ ý, AI đọc được.
+
+## Mỗi góp ý ghi rõ "từ trang nào, với dữ liệu nào"
+
+Mục đích chính của widget là thu phản hồi về **chức năng, nội dung và dữ liệu**, rồi để người (hoặc Claude) dựa vào đó sửa hệ thống. Nên mỗi góp ý tự mang đủ thông tin để tìm đúng chỗ, không phải hỏi lại:
+
+| Thông tin | Nguồn | Lưu ở |
+|---|---|---|
+| Đường dẫn và **địa chỉ đầy đủ** (kèm query) | widget tự lấy | `pagePath`, `pageUrl` |
+| Tiêu đề trang, cỡ màn hình, ngôn ngữ trình duyệt | widget tự lấy | `extra.pageTitle`, `extra.viewport`, `extra.lang` |
+| **Ảnh chụp trang** như người gửi thấy (đúng vị trí cuộn) | widget tự chụp, người gửi bỏ được | tệp đính kèm `trang-chup.png` |
+| Phần tử người gửi chỉ vào, đoạn chữ họ bôi đen | người gửi | `pageTarget`, `suggestion` |
+| **Bản ghi dữ liệu** bị góp ý (bài học, câu hỏi, khoá học…) | ứng dụng chủ qua `getContext` | `contentRef`, `extra` |
+
+Quan trọng nhất là phần cuối: ứng dụng chủ biết "trang này đang hiển thị bản ghi nào", widget thì không. Hãy truyền:
+
+```js
+FeedbackHub.init({
+  project: "my-app", tokenUrl: "/api/feedback-token",
+  getContext: () => ({ contentRef: `lesson:${lessonId}`, extra: { course: courseSlug, role: currentRole } }),
+});
+```
+
+### Ảnh chụp trang
+
+- Admin chọn trong **Cấu hình → Tính năng → Ảnh chụp trang**: *Bật sẵn* (ô được chọn sẵn, nên dùng cho góp ý về nội dung/dữ liệu), *Cho chọn* (mặc định bỏ chọn, là mặc định của dự án mới) hoặc *Tắt*.
+- Chụp ngay khi mở ngăn kéo, người gửi thấy ảnh xem trước và bấm **Chụp lại** hoặc bỏ chọn được. Ngăn kéo của widget không lọt vào ảnh.
+- Thư viện chụp ([modern-screenshot](https://github.com/qq15725/modern-screenshot), MIT) nằm ngay trên hub (`/vendor/modern-screenshot.mjs`), nạp theo yêu cầu khi cần chụp — **không tải từ CDN ngoài**, không chạy khi người dùng không dùng tới. CSP của ứng dụng chủ cần cho phép `script-src` tới hub (đã cần để nạp `widget.js`).
+- **Che dữ liệu nhạy cảm**: ô mật khẩu và ô `autocomplete="cc-*"` luôn bị che; thêm `data-feedbackhub-mask` vào bất kỳ phần tử nào (hoặc `data-mask="…"` / `mask: "…"` với bộ chọn CSS) để che nó và mọi thứ bên trong. Phần bị che chỉ còn khối xám, giá trị ô nhập bị xoá khỏi ảnh.
+- Ảnh có thể chứa dữ liệu của người dùng khác (bảng điểm, danh sách lớp). Nếu trang đó nhạy cảm, hãy che vùng ấy hoặc để dự án ở chế độ *Cho chọn* / *Tắt*.
+- Chụp bằng cách vẽ lại DOM, nên **không** thấy: nội dung `<iframe>` khác nguồn, `<video>`, `<canvas>` bị tainted, và một số hiệu ứng CSS mới. Chụp lỗi thì góp ý vẫn được gửi kèm đường dẫn.
 
 ## Nhận thông báo khi có phản hồi (webhook)
 

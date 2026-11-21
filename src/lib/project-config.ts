@@ -9,6 +9,8 @@ export type Features = {
   attachments: boolean;
   planApproval: boolean;
   successCriteria: boolean;
+  /** Ảnh chụp trang kèm góp ý: off = không; optional = có ô chọn (mặc định bỏ chọn); default = có ô chọn (mặc định chọn). */
+  screenshot: "off" | "optional" | "default";
   /** Mô hình người gửi được chọn cho từng góp ý (chỉ có nghĩa khi mode=execute). */
   models: { id: string; label: string }[];
 };
@@ -20,6 +22,7 @@ export const DEFAULT_FEATURES: Features = {
   attachments: true,
   planApproval: false,
   successCriteria: false,
+  screenshot: "optional",
   models: [],
 };
 

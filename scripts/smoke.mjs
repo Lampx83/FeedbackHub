@@ -221,6 +221,23 @@ try {
   const i1 = await call("POST", `/api/v1/machine/import?project=${slug}`, { key: op.data.key, body: imp });
   const i2 = await call("POST", `/api/v1/machine/import?project=${slug}`, { key: op.data.key, body: imp });
   ok(i1.data.created === 1 && i2.data.skipped === 1, "nhập dữ liệu cũ, chạy lại không nhân đôi");
+
+  // ── ảnh chụp trang: cấu hình + ngữ cảnh trang lưu cùng góp ý ───────────────────
+  const cfg0 = await call("GET", `/api/v1/config?project=${slug}`);
+  ok(cfg0.data.features?.screenshot === "optional", "cấu hình công khai có features.screenshot (mặc định optional)", JSON.stringify(cfg0.data.features));
+  const badShot = await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { screenshot: "luon-luon" } } });
+  ok(badShot.status === 400, "screenshot sai giá trị → 400");
+  const okShot = await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { screenshot: "default" } } });
+  ok(okShot.status === 200 && (await call("GET", `/api/v1/config?project=${slug}`)).data.features.screenshot === "default", "admin đặt screenshot=default → widget nhận được");
+  const ctxFb = await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Số liệu sai ở bảng điểm", scope: "page", source: "widget", pagePath: "/learn/abc/lessons/9?tab=diem", pageUrl: "https://app.example.com/learn/abc/lessons/9?tab=diem", contentRef: "lesson:9", extra: { pageTitle: "Bài 9", viewport: "390x800", course: "abc" } } });
+  const ctxGet = await call("GET", `/api/v1/feedback/${ctxFb.data.feedback?.id}`, { token: staff });
+  const cf = ctxGet.data.feedback ?? {};
+  ok(cf.pageUrl?.includes("tab=diem") && cf.contentRef === "lesson:9" && cf.extra?.pageTitle === "Bài 9" && cf.extra?.course === "abc", "góp ý lưu đủ url đầy đủ, contentRef và extra", JSON.stringify(cf.extra));
+  const shotUp = new FormData();
+  shotUp.append("file", new Blob([Buffer.from("89504e470d0a1a0a", "hex")], { type: "image/png" }), "trang-chup.png");
+  const shotRes = await call("POST", `/api/v1/feedback/${ctxFb.data.feedback?.id}/attachments`, { token: staff, body: shotUp });
+  ok(shotRes.status === 200 || shotRes.status === 201, "tải lên trang-chup.png được chấp nhận", JSON.stringify(shotRes.data));
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);

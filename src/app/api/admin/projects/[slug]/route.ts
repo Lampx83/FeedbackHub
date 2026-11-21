@@ -36,7 +36,7 @@ const patch = z
     types: z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), label: z.string().min(1).max(60), kind: z.enum(["function", "content", "bug", "question", "other"]) })).min(1).max(20),
     features: z.object({
       scopePicker: z.boolean(), elementPicker: z.boolean(), voice: z.boolean(), attachments: z.boolean(),
-      planApproval: z.boolean(), successCriteria: z.boolean(),
+      planApproval: z.boolean(), successCriteria: z.boolean(), screenshot: z.enum(["off", "optional", "default"]),
       models: z.array(z.object({ id: z.string().min(1).max(60), label: z.string().min(1).max(40) })).max(10),
     }).partial(),
     theme: z.unknown(),

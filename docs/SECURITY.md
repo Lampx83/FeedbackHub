@@ -17,6 +17,7 @@ Hub nhận nội dung từ người dùng cuối của nhiều ứng dụng rồ
 | Theme/CSS độc hại | Theme chỉ nhận giá trị trong danh sách cho phép (màu theo mẫu, độ dài có đơn vị, phông và biểu tượng trong danh sách). Không CSS tự do, không HTML. Widget dùng `textContent`, không `innerHTML` với dữ liệu người dùng. |
 | URL ngoài trong ngữ cảnh | `pagePath` chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`. |
 | Tệp đính kèm độc hại | Danh sách loại tệp đóng, ≤ 10 MB, tên tệp được làm sạch, chặn thoát thư mục, phục vụ kèm `X-Content-Type-Options: nosniff`. |
+| Ảnh chụp trang lộ dữ liệu | Chỉ quản trị dự án xem được (không có đường công khai). Người gửi thấy xem trước và bỏ chọn được; ô mật khẩu/thẻ luôn bị che, ứng dụng che thêm bằng `data-feedbackhub-mask`. Admin tắt hoặc để *Cho chọn* ở dự án có dữ liệu nhạy cảm. Thư viện chụp nằm trên hub, không nạp từ CDN. |
 | Dò mật khẩu quản trị | Giới hạn 8 lần/10 phút/IP; so băm cả khi email không tồn tại (không lộ tài khoản). |
 | Spam gửi ẩn danh | Bắt buộc `Origin` hợp lệ, 5 góp ý/10 phút/IP; không xem được danh sách. Danh tính ẩn danh là **băm có khoá** của IP (không lưu IP thô), nên không lộ ra webhook hay bảng điều khiển. |
 | Webhook giả | Ký HMAC-SHA256 bằng khoá dự án; ứng dụng chủ phải kiểm bằng so sánh thời gian hằng số. |

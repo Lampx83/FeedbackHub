@@ -123,7 +123,7 @@ function renderFeedback(fb, project) {
   if (fb.adminNote) L.push(`Ghi chú hiện cho người gửi (adminNote): ${fb.adminNote}`);
   if (fb.attachments?.length) {
     L.push("## Tệp đính kèm (PHẢI đọc bằng hub_get_attachment trước khi làm)");
-    for (const a of fb.attachments) L.push(`- ${a.id} · ${a.fileName} · ${a.mimeType}${a.sizeBytes ? ` · ${a.sizeBytes} byte` : ""}`);
+    for (const a of fb.attachments) L.push(`- ${a.id} · ${a.fileName}${/^trang-chup/.test(a.fileName) ? " (ẢNH CHỤP TRANG lúc gửi)" : ""} · ${a.mimeType}${a.sizeBytes ? ` · ${a.sizeBytes} byte` : ""}`);
   }
   L.push("## Luồng trao đổi (cũ → mới; tin MỚI NHẤT của người gửi là ý định hiện tại)");
   if (!fb.messages?.length) L.push("(chưa có tin nhắn)");
@@ -424,7 +424,8 @@ server.registerPrompt(
 2. Đọc KỸ từng góp ý trước khi làm: hub_get_feedback.
    - Đọc TOÀN BỘ luồng tin nhắn theo thứ tự thời gian: tin MỚI NHẤT của người gửi là ý định hiện tại, quan trọng hơn mô tả ban đầu.
    - Có tệp đính kèm thì PHẢI mở bằng hub_get_attachment (ảnh bạn sẽ nhìn được). Tệp pdf/Word/Excel mà chưa đọc được thì nói rõ, đừng đoán.
-   - Dùng ngữ cảnh có sẵn (trang, phạm vi page/system, phần tử người dùng chỉ vào, contentRef, đề xuất "trước → sau", tiêu chí thành công) — đừng hỏi lại điều đã có.
+   - Dùng ngữ cảnh có sẵn (trang và url đầy đủ, extra, phạm vi page/system, phần tử người dùng chỉ vào, contentRef, đề xuất "trước → sau", tiêu chí thành công) — đừng hỏi lại điều đã có.
+   - Góp ý về DỮ LIỆU hoặc NỘI DUNG (số liệu sai, thiếu, hiển thị lệch): (1) mở "trang-chup.png" (nếu có) — đó là ảnh trang đúng như người gửi thấy lúc gửi; (2) dùng "pageUrl"/"pagePath", "contentRef" và "extra" (vd. mã khoá học, mã bản ghi) để tìm ĐÚNG bản ghi và đoạn mã sinh ra nó; (3) xác định NGUỒN gây sai (mã tính toán, ánh xạ, dữ liệu mẫu/seed, bước nhập) và sửa ở nguồn trong MÃ NGUỒN. KHÔNG sửa trực tiếp dữ liệu đang chạy trong cơ sở dữ liệu sản xuất; nếu cần sửa dữ liệu thật thì viết kịch bản có thể chạy lại và đảo ngược được, rồi đặt "awaiting_user" để người phụ trách duyệt. Ảnh có thể có vùng bị che (ô xám) — đó là dữ liệu nhạy cảm, đừng đoán nội dung.
    - Đọc yêu cầu đúng nghĩa đen. Không tìm thấy thứ cần sửa thì khả năng cao là bạn hiểu sai, đọc lại trước khi hỏi vặn người gửi.
    - Nếu có cờ "người gửi đã bấm DỪNG" hoặc planApproval=requested chưa duyệt: không sửa gì; với planApproval thì trình kế hoạch (sẽ đụng gì, làm gì, rủi ro) bằng hub_reply rồi đặt awaiting_user.
 

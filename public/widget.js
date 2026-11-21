@@ -61,6 +61,11 @@
     mic_start: "Nói thay vì gõ",
     mic_stop: "Đang nghe, bấm để dừng",
     attach: "📎 Đính kèm tệp",
+    shot_label: "📸 Đính kèm ảnh chụp trang này",
+    shot_hint: "Chỉ người quản trị dự án xem được. Ô mật khẩu và vùng được ứng dụng đánh dấu nhạy cảm đã được che.",
+    shot_busy: "Đang chụp trang…",
+    shot_fail: "Không chụp được ảnh — góp ý vẫn được gửi kèm đường dẫn trang.",
+    shot_retake: "Chụp lại",
     remove: "Bỏ {name}",
     offer: "Bạn đang bôi đen: «{text}»",
     offer_btn: "✏️ Sửa chữ này",
@@ -167,6 +172,11 @@
     mic_start: "Dictate instead of typing",
     mic_stop: "Listening, press to stop",
     attach: "📎 Attach files",
+    shot_label: "📸 Attach a screenshot of this page",
+    shot_hint: "Only the project administrators can see it. Password fields and areas the app marks as sensitive are hidden.",
+    shot_busy: "Capturing the page…",
+    shot_fail: "Could not capture the page — your feedback is still sent with the page address.",
+    shot_retake: "Retake",
     remove: "Remove {name}",
     offer: "You have selected: “{text}”",
     offer_btn: "✏️ Fix this text",
@@ -442,6 +452,9 @@
     ".okbox{border:1px solid #34d399;background:var(--okbg);color:var(--okfg);border-radius:calc(var(--r) * .7);padding:8px 12px;display:flex;flex-direction:column;gap:8px;font-size:.92em}",
     ".chk{display:flex;gap:8px;align-items:center;font-size:.92em;color:var(--muted)}",
     ".files{display:flex;flex-wrap:wrap;gap:8px}",
+    ".shot{display:flex;flex-direction:column;gap:6px}",
+    ".shot img{max-width:100%;max-height:120px;object-fit:contain;align-self:flex-start;border-radius:6px;border:1px solid var(--bd)}",
+    ".shot .hint{font-size:.85em;color:var(--muted)}",
     ".pf{position:relative}",
     ".pf img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--bd);display:block}",
     ".pf .fn{display:flex;align-items:center;height:64px;max-width:10rem;border:1px solid var(--bd);border-radius:6px;padding:0 8px;font-size:.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
@@ -600,7 +613,7 @@
     }
 
     /* — cấu hình — */
-    var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, models: [] }, cfg.features || {});
+    var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, screenshot: "optional", models: [] }, cfg.features || {});
     var models = Array.isArray(feat.models) ? feat.models.filter(function (m) { return m && typeof m.id === "string"; }) : [];
     var allTypes = (Array.isArray(cfg.types) ? cfg.types : []).filter(function (x) { return x && typeof x.id === "string"; });
     var formTypes = allTypes.filter(function (x) { return x.kind !== "question"; });
@@ -850,6 +863,22 @@
     form.appendChild(h("div", { class: "rel" }, [F.body, bodyMic]));
     if (feat.attachments) on(F.body, "paste", guard(onPaste));
 
+    // ảnh chụp trang (tự động, người gửi bỏ được)
+    var shotMode = feat.screenshot === "off" ? "off" : feat.screenshot === "default" ? "default" : "optional";
+    var shotLibP = null, shotSeq = 0, maskSel = 'input[type="password"],input[autocomplete^="cc-"],[data-feedbackhub-mask]' + (opts.mask ? "," + opts.mask : "");
+    if (shotMode !== "off") {
+      F.shot = h("input", { type: "checkbox", id: "fh-shot" });
+      F.shot.checked = shotMode === "default";
+      F.shotImg = h("img", { alt: "", hidden: true });
+      F.shotNote = h("div", { class: "hint", "aria-live": "polite" });
+      F.shotRe = h("button", { type: "button", class: "btn sm", hidden: true, onclick: function () { captureShot(); } }, t("shot_retake"));
+      form.appendChild(h("div", { class: "shot" }, [
+        h("label", { class: "chk" }, [F.shot, t("shot_label")]),
+        F.shotImg, F.shotNote, F.shotRe,
+      ]));
+      on(F.shot, "change", guard(function () { if (F.shot.checked && !S.shot) captureShot(); else paintShot(); }));
+    }
+
     if (feat.successCriteria) {
       F.criteria = h("input", { class: "in", maxlength: "300", placeholder: t("criteria_ph"), "aria-label": t("criteria_ph") });
       form.appendChild(F.criteria);
@@ -940,6 +969,54 @@
     }
     onTypeChange();
 
+    /* — ảnh chụp trang — */
+    function maskNode(n) {
+      try {
+        if (n.nodeType !== 1 || !n.matches || !n.matches(maskSel)) return;
+        if ("value" in n) { try { n.value = ""; } catch (e) {} n.setAttribute("value", ""); }
+        while (n.firstChild) n.removeChild(n.firstChild);
+        ["background", "color", "border-color"].forEach(function (k) { n.style.setProperty(k, k === "color" ? "transparent" : "#4b5563", "important"); });
+      } catch (e) {}
+    }
+    var shotUrl = null;
+    function paintShot() {
+      if (!F.shot) return;
+      if (shotUrl) { URL.revokeObjectURL(shotUrl); shotUrl = null; }
+      var on_ = F.shot.checked;
+      F.shotImg.hidden = !(on_ && S.shot);
+      if (on_ && S.shot) { shotUrl = URL.createObjectURL(S.shot); F.shotImg.src = shotUrl; }
+      F.shotRe.hidden = !on_ || S.shotBusy;
+      F.shotNote.textContent = !on_ ? "" : S.shotBusy ? t("shot_busy") : S.shotFail ? t("shot_fail") : t("shot_hint");
+    }
+    function captureShot() {
+      if (!F.shot || !F.shot.checked) return Promise.resolve();
+      var seq = ++shotSeq;
+      S.shotBusy = true; S.shotFail = false; S.shot = null;
+      paintShot();
+      S.shotP = (shotLibP || (shotLibP = import(hub + "/vendor/modern-screenshot.mjs")))
+        .then(function (lib) {
+          var vw = window.innerWidth, vh = window.innerHeight;
+          return lib.domToBlob(document.documentElement, {
+            width: vw, height: vh,
+            scale: Math.max(0.5, Math.min(window.devicePixelRatio || 1, 1600 / vw)),
+            style: { transform: "translate(" + -window.scrollX + "px," + -window.scrollY + "px)", transformOrigin: "0 0" },
+            filter: function (n) { return n !== host; },
+            onCloneEachNode: maskNode,
+            backgroundColor: "#ffffff",
+            type: "image/png",
+          });
+        })
+        .then(function (blob) {
+          if (seq !== shotSeq) return;
+          if (!blob || !blob.size || blob.size > MAX_BYTES) throw new Error("ảnh rỗng hoặc quá lớn");
+          S.shot = new File([blob], "trang-chup.png", { type: "image/png" });
+        })
+        .catch(function (e) { if (seq === shotSeq) { S.shotFail = true; log("Chụp trang lỗi:", e); } })
+        .then(function () { if (seq === shotSeq) { S.shotBusy = false; paintShot(); } });
+      return S.shotP;
+    }
+    disposers.push(function () { if (shotUrl) URL.revokeObjectURL(shotUrl); });
+
     /* — tệp đính kèm — */
     function renamePasted(f, n) {
       var ext = f.type === "image/jpeg" ? "jpg" : f.type.split("/")[1];
@@ -997,6 +1074,8 @@
       if (F.criteria) F.criteria.value = "";
       if (F.plan) F.plan.checked = false;
       S.files = [];
+      S.shot = null; S.shotFail = false;
+      if (F.shot) { F.shot.checked = shotMode === "default"; paintShot(); }
       S.target = null;
       S.sel = null;
       F.offer.hidden = true;
@@ -1032,13 +1111,18 @@
         if (F.name.value.trim()) payload.name = F.name.value.trim();
         if (email) payload.email = email;
       }
+      // Ngữ cảnh tự động (ứng dụng chủ ghi đè được qua getContext): tiêu đề trang, cỡ màn hình, ngôn ngữ.
+      var autoExtra = { pageTitle: String(document.title || "").slice(0, 200), viewport: window.innerWidth + "x" + window.innerHeight, lang: String(navigator.language || "").slice(0, 20) };
+      var hostExtra = {};
       if (typeof opts.getContext === "function") {
         try {
           var c = opts.getContext() || {};
           if (typeof c.contentRef === "string") payload.contentRef = c.contentRef.slice(0, 200);
-          if (c.extra && typeof c.extra === "object") payload.extra = c.extra;
+          if (c.extra && typeof c.extra === "object") hostExtra = c.extra;
         } catch (e) { log("getContext lỗi:", e); }
       }
+      payload.extra = Object.assign(autoExtra, hostExtra);
+      var wantShot = Boolean(F.shot && F.shot.checked);
       return api("POST", "/feedback", { json: payload }).then(function (r) {
         if (r.status === 409 && r.data && r.data.duplicateOf) {
           showDup(r.data.duplicateOf);
@@ -1049,15 +1133,18 @@
         var id = r.data && r.data.feedback && r.data.feedback.id;
         var files = S.files.slice();
         var failed = [];
-        var chain = Promise.resolve();
-        // Tải lần lượt, không song song: đỡ dồn nhiều ảnh lớn cùng lúc và biết chính xác tệp nào hỏng.
-        if (id) files.forEach(function (f, i) {
-          chain = chain.then(function () {
-            setMsg(t("uploading", { i: i + 1, n: files.length }));
-            var fd = new FormData();
-            fd.append("file", f);
-            return api("POST", "/feedback/" + encodeURIComponent(id) + "/attachments", { form: fd }).then(function (u) { if (!u.ok) failed.push(f.name); });
-          });
+        // Chờ ảnh chụp trang (nếu còn đang chụp) rồi tải lần lượt, không song song: đỡ dồn nhiều ảnh lớn cùng lúc và biết chính xác tệp nào hỏng.
+        var chain = (wantShot && S.shotP ? S.shotP : Promise.resolve()).then(function () {
+          if (wantShot && S.shot) files.push(S.shot);
+          return files.reduce(function (p, f, i) {
+            return p.then(function () {
+              if (!id) return;
+              setMsg(t("uploading", { i: i + 1, n: files.length }));
+              var fd = new FormData();
+              fd.append("file", f);
+              return api("POST", "/feedback/" + encodeURIComponent(id) + "/attachments", { form: fd }).then(function (u) { if (!u.ok) failed.push(f.name); });
+            });
+          }, Promise.resolve());
         });
         return chain.then(function () {
           resetForm();
@@ -1479,6 +1566,7 @@
         var ts = lastSel && Date.now() - lastSel.at < 120000 ? lastSel.text : null;
         if (ts) { S.sel = ts; lastSel = null; }
         showOffer();
+        if (F.shot && F.shot.checked) captureShot();
         loadList();
         loadSummary();
         startOpenTimers();
@@ -1656,7 +1744,7 @@
     return {
       project: d.project, hub: d.hub, tokenUrl: d.tokenUrl, position: d.position, colorScheme: d.colorScheme,
       label: d.label, icon: d.icon, locale: d.locale, offsetX: d.offsetX, offsetY: d.offsetY, trigger: d.trigger,
-      fab: d.fab == null ? undefined : d.fab !== "false", mount: d.mount,
+      fab: d.fab == null ? undefined : d.fab !== "false", mount: d.mount, mask: d.mask,
     };
   }
   function merge(a, b) {
