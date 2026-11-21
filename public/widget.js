@@ -1115,7 +1115,9 @@
       var el = h("div", { class: "card" }, [head]);
       var liveTxt = null;
 
-      function running() { return RUNNING.indexOf(item.status) >= 0; }
+      // Chế độ thu nhận (collect) không có AI nhận việc; riêng Hỏi đáp luôn có bộ trả lời riêng.
+      function aiHandles() { return executeMode || item.kind === "question"; }
+      function running() { return aiHandles() && RUNNING.indexOf(item.status) >= 0; }
       function since() { return item.status === "pending" ? item.createdAt : item.updatedAt; }
 
       function paintHead() {
@@ -1180,7 +1182,7 @@
         D.body.textContent = item.body || "";
         D.body.hidden = !item.body;
         D.reply.placeholder = item.status === "awaiting_user" ? t("reply_ph_wait") : t("reply_ph");
-        D.hint.hidden = item.status !== "awaiting_user";
+        D.hint.hidden = item.status !== "awaiting_user" || !aiHandles();
       }
       function paintAtts() {
         D.atts.textContent = "";
@@ -1222,7 +1224,7 @@
       function renderDyn() {
         D.dyn.textContent = "";
         var st = item.status;
-        if (st === "pending" || st === "reviewing") {
+        if (aiHandles() && (st === "pending" || st === "reviewing")) {
           if (item.stopRequestedAt) {
             D.dyn.appendChild(h("div", { class: "meta row" }, [spinner(), t("stopping")]));
           } else if (stopAsk) {
