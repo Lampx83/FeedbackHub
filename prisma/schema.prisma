@@ -1,0 +1,228 @@
+// Feedback Hub — lược đồ dữ liệu (chuẩn v1, xem docs/SPEC.md).
+// Quy tắc: chỉ thêm cột/bảng (additive). Không đổi tên hay xoá cột đang dùng nếu chưa backfill.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Người đăng nhập bảng điều khiển của hub (không phải người dùng của các ứng dụng).
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+/// Một ứng dụng dùng hub. Mọi cấu hình riêng của ứng dụng nằm ở đây, nên thêm ứng dụng
+/// mới không phải sửa mã của hub.
+model Project {
+  id   String @id @default(cuid())
+  slug String @unique
+  name String
+
+  /// Khoá ký token người dùng (HS256), mã hoá AES-GCM bằng HUB_ENCRYPTION_KEY. Ứng dụng chủ
+  /// giữ bản gốc để ký; hub cần bản gốc để kiểm chữ ký nên không thể chỉ lưu băm.
+  signingSecretEnc String
+
+  /// Tên miền được phép gọi API từ trình duyệt (vd. https://dgxl.neu.edu.vn). Rỗng = chỉ
+  /// gọi từ máy chủ (không có CORS).
+  allowedOrigins String[]
+  /// Vai trò được GỬI góp ý. Rỗng = mọi người có token hợp lệ.
+  submitRoles    String[]
+  /// Vai trò xem và xử lý MỌI góp ý của dự án; vai trò khác chỉ thấy góp ý của chính mình.
+  adminRoles     String[]
+  /// Cho gửi ẩn danh (không token) qua khoá công khai + tên miền + giới hạn tần suất.
+  anonymousSubmit Boolean @default(false)
+
+  /// collect = chỉ thu nhận | execute = worker tự nhận việc và làm.
+  mode    String @default("collect")
+  /// Cách giao kết quả khi mode=execute: branch (chờ duyệt) | deploy (tự triển khai).
+  deliver String @default("branch")
+
+  /// Danh sách loại góp ý của dự án: [{ id, label, kind }]. kind ∈ function|content|bug|question|other.
+  types    Json @default("[]")
+  /// Bật/tắt tính năng của nút nổi: { scopePicker, elementPicker, voice, attachments,
+  /// planApproval, successCriteria, models: [{id,label}] }.
+  features Json @default("{}")
+  /// Giao diện nút nổi (chỉ nhận giá trị trong danh sách cho phép — xem lib/theme.ts).
+  theme    Json @default("{}")
+
+  /// Hub gọi URL này (POST, ký HMAC bằng khoá của dự án) khi có phản hồi hoặc đổi trạng thái.
+  webhookUrl   String?
+  workerSeenAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  feedback Feedback[]
+  keys     ApiKey[]
+  memories Memory[]
+}
+
+/// Khoá cho máy: worker (gắn một dự án) hoặc operator (mọi dự án — dùng cho Claude/MCP/CLI).
+model ApiKey {
+  id         String    @id @default(cuid())
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// worker | operator
+  scope      String
+  /// 8 ký tự đầu để nhận diện trong giao diện; không dùng để xác thực.
+  prefix     String
+  hash       String    @unique
+  label      String
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+/// Một góp ý. Cùng bộ trạng thái và trường với "Yêu cầu cải tiến" của DGXL để chuyển sang không đổi hành vi.
+model Feedback {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// function | content | bug | question | other — phân loại chuẩn, quyết định ai xử lý.
+  kind  String @default("other")
+  /// Loại riêng của ứng dụng (vd. DGXL: add|edit|change|bug|other|qa). Tuỳ chọn.
+  type  String?
+  title String
+  body  String?
+
+  /// pending | reviewing | deploying | awaiting_user | done | rejected
+  status String @default("pending")
+
+  /// Định danh người gửi do ứng dụng chủ cấp (claim `uid`). Hub không có bảng người dùng.
+  reporterId    String
+  reporterName  String
+  reporterEmail String?
+  reporterRole  String?
+
+  adminNote String?
+
+  // ── Ngữ cảnh ──────────────────────────────────────────────────────────────────────
+  pagePath   String?
+  pageUrl    String?
+  /// page | system
+  scope      String  @default("page")
+  /// Phần tử chỉ bằng chuột: "<đường dẫn CSS> | <đoạn chữ nhìn thấy>".
+  pageTarget String?
+  /// Đề xuất sửa chữ tại chỗ: { before, after }.
+  suggestion Json?
+  /// Định danh đối tượng nội dung bị góp ý (vd. "question:12") để gom góp ý cùng đối tượng.
+  contentRef String?
+  /// Dữ liệu riêng của ứng dụng (vd. AI-Portal: trợ lý bị góp ý).
+  extra      Json?
+
+  // ── Đo lường (cùng nghĩa với DGXL) ───────────────────────────────────────────────
+  /// widget | board | api | import | system
+  source        String    @default("api")
+  refDensity    Int       @default(0)
+  clarifyRounds Int       @default(0)
+  pickedAt      DateTime?
+  codeDoneAt    DateTime?
+  liveAt        DateTime?
+  agentRuns     Int       @default(0)
+  costUsd       Float     @default(0)
+  rolledBack    Boolean   @default(false)
+
+  // ── Kiểm chứng ──────────────────────────────────────────────────────────────────
+  successCriteria String?
+  expectedString  String?
+  /// pass | fail | skipped — do script kiểm, không do AI tự đặt.
+  verifyResult    String?
+  verifiedAt      DateTime?
+  scopeViolation  String?
+  /// accepted | rejected — của người gửi, sau khi thay đổi đã lên thật.
+  userVerdict     String?
+  userVerdictAt   DateTime?
+
+  // ── Chạy bằng AI ────────────────────────────────────────────────────────────────
+  /// requested | approved
+  planApproval    String?
+  aiProvider      String?
+  aiModel         String?
+  stopRequestedAt DateTime?
+  /// Ai đang giữ việc (worker nhận bằng claim) và từ lúc nào.
+  claimedBy       String?
+  claimedAt       DateTime?
+
+  votes     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages    Message[]
+  events      Event[]
+  attachments Attachment[]
+
+  @@index([projectId, status, createdAt])
+  @@index([projectId, reporterId])
+  @@index([projectId, contentRef])
+}
+
+/// Luồng trao đổi của một góp ý.
+model Message {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  /// user | admin | ai
+  role       String
+  authorName String?
+  body       String
+  /// chat = đối thoại | progress = bước AI tự ghi khi đang chạy | system = mốc do script ghi
+  kind       String   @default("chat")
+  createdAt  DateTime @default(now())
+
+  @@index([feedbackId, createdAt])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  feedbackId  String
+  feedback    Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  /// Đường dẫn tương đối trong HUB_DATA_DIR.
+  storagePath String
+  createdAt   DateTime @default(now())
+
+  @@index([feedbackId])
+}
+
+/// Nhật ký sự kiện — nguồn để tính mọi chỉ số.
+model Event {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  /// created | status | webhook_fail
+  kind       String
+  fromStatus String?
+  toStatus   String?
+  /// human | ai | ai_manual | system — ai gây ra (ai_manual = Claude được người nhờ làm tay).
+  actor      String   @default("system")
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  @@index([feedbackId, createdAt])
+  @@index([kind, createdAt])
+}
+
+/// Trí nhớ của worker: quyết định, quy ước, cạm bẫy các lượt trước đã học.
+model Memory {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  body      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([projectId, active, createdAt])
+}
