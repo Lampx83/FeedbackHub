@@ -61,7 +61,7 @@ feedback.example.com {
 
 **Dưới đường dẫn con của tên miền có sẵn** (vd. `https://fit.neu.edu.vn/feedbackhub`, tên miền do máy khác — Apache/nginx front — phục vụ; không cần tên miền riêng):
 1. Đặt `HUB_BASE_PATH=/feedbackhub` và `HUB_PUBLIC_URL=https://fit.neu.edu.vn/feedbackhub` trong `.env`, rồi `docker compose up -d --build` (tiền tố được nhúng lúc build, đổi là phải build lại).
-2. Trên máy chạy hub: `sudo bash deploy/install-subpath-listener.sh 8003 <IP máy front> /feedbackhub` — mở một cổng nội bộ chỉ cho máy front gọi vào, giữ nguyên tiền tố.
+2. Trên máy chạy hub: `sudo bash deploy/install-subpath-listener.sh 8003 <IP máy front> /feedbackhub` — mở một cổng nội bộ chỉ cho máy front gọi vào, giữ nguyên tiền tố. Không có sudo nhưng có quyền docker: `bash deploy/docker-subpath-listener.sh 8003 <IP máy front> /feedbackhub` (container nginx, tự khởi động lại cùng Docker).
 3. Trên máy front thêm một luật chuyển tiếp, GIỮ tiền tố. Apache: `ProxyPass /feedbackhub/ http://<máy hub>:8003/feedbackhub/` + `ProxyPassReverse` tương ứng (nhớ `ProxyPreserveHost On`, và truyền `X-Forwarded-For`).
 Mã nhúng khi đó là `<script src="https://fit.neu.edu.vn/feedbackhub/widget.js" …>`; mọi địa chỉ API của hub tự nối theo tiền tố này. Công cụ dòng lệnh/MCP/worker đặt `FEEDBACK_HUB_URL=https://fit.neu.edu.vn/feedbackhub` (có cả tiền tố).
 
