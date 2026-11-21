@@ -39,6 +39,13 @@ ok(f.includes('data-label="Góp ý &quot;nhanh&quot;"') && f.includes('data-mask
 const t = E.scriptSnippet({ ...base, open: "trigger", position: "top-left", offsetX: 50, label: "x" });
 ok(t.includes('data-trigger="[data-feedbackhub-open]"') && !t.includes("data-position") && !t.includes("data-label") && !t.includes("data-offset"), "kiểu trigger bỏ tuỳ chọn nút nổi");
 ok(E.companionHtml({ ...base, open: "trigger" })?.code.includes("data-feedbackhub-open"), "gợi ý nút HTML kèm theo");
+ok(t.includes('data-fab="false"'), "kiểu trigger tắt nút nổi");
+const L = E.scriptSnippet({ ...base, open: "launcher", position: "top-left" });
+ok(L.includes('data-fab="false"') && !L.includes("data-position") && !L.includes("data-trigger"), "kiểu nút đặt trong trang: tắt nút nổi, bỏ tuỳ chọn nút nổi");
+ok(E.companionHtml({ ...base, open: "launcher" })?.code === "<span data-feedbackhub-launcher hidden></span>", "gợi ý phần tử đặt nút trong trang");
+ok(widget.includes("[data-feedbackhub-launcher]"), "widget.js tìm đúng thuộc tính data-feedbackhub-launcher");
+const Li = E.initSnippet({ ...base, open: "launcher" });
+ok(Li.includes("fab: false,") && !Li.includes('fab: "false"'), "dạng init(): fab là boolean false, không phải chuỗi");
 ok(E.scriptSnippet({ ...base, open: "mount" }).includes('data-mount="#feedback-panel"') && E.companionHtml({ ...base, open: "mount" })?.code === '<div id="feedback-panel"></div>', "kiểu mount + phần tử vùng nhúng");
 ok(E.companionHtml(base) === null, "nút nổi không cần phần tử kèm theo");
 

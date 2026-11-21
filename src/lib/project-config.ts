@@ -13,6 +13,18 @@ export type Features = {
   screenshot: "off" | "optional" | "default";
   /** Mô hình người gửi được chọn cho từng góp ý (chỉ có nghĩa khi mode=execute). */
   models: { id: string; label: string }[];
+  /**
+   * Bôi đen chữ → hiện bong bóng "Góp ý đoạn này" ngay cạnh vùng chọn; bấm vào thì mở ngăn góp ý với đoạn chữ điền
+   * sẵn. Ứng dụng chủ không phải viết thêm mã.
+   */
+  textSelection: boolean;
+  /** Chỉ hiện bong bóng khi bôi đen bên trong vùng khớp bộ chọn CSS này (vd. "#lesson-content, article"). Rỗng = cả trang. */
+  selectionScope: string;
+  /**
+   * Tiền tố đường dẫn mà widget tự ẩn mọi lối vào (nút nổi, nút gắn trong trang, bong bóng bôi đen), vd. trang làm bài thi.
+   * So với `location.pathname` của ứng dụng chủ (gồm cả tiền tố đường dẫn nếu ứng dụng chạy dưới đường dẫn con).
+   */
+  hidePaths: string[];
 };
 
 export const DEFAULT_FEATURES: Features = {
@@ -24,6 +36,9 @@ export const DEFAULT_FEATURES: Features = {
   successCriteria: false,
   screenshot: "optional",
   models: [],
+  textSelection: false,
+  selectionScope: "",
+  hidePaths: [],
 };
 
 export function projectTypes(p: Pick<Project, "types">): TypeDef[] {

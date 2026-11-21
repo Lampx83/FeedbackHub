@@ -77,7 +77,8 @@ Cách này hợp khi ứng dụng đã có **design token** riêng: trỏ `--fh-
 ## Vị trí và nút có sẵn
 
 - Nút nổi bị che bởi thành phần khác (thanh chat, banner cookie)? Đổi `position` hoặc `offsetX/offsetY`.
-- Ứng dụng đã có nút "Góp ý" trên thanh điều hướng? Dùng `data-trigger=".my-feedback-btn"` — bấm nút của bạn thì mở widget, nút nổi tự ẩn.
+- Muốn nút nằm trên thanh header thay vì góc màn hình? Đặt `<span data-feedbackhub-launcher hidden></span>` vào header và `data-fab="false"` — widget tự vẽ nút cùng màu chữ của header ([INTEGRATION.md](INTEGRATION.md#lối-vào-không-cần-viết-mã)).
+- Ứng dụng đã có nút "Góp ý" trên thanh điều hướng? Dùng `data-trigger=".my-feedback-btn"` kèm `data-fab="false"` — bấm nút của bạn thì mở widget.
 - Muốn bảng góp ý nằm **trong** một trang (vd. trang "Hỗ trợ")? `data-mount="#feedback-panel"`.
 
 ## Chữ và ngôn ngữ

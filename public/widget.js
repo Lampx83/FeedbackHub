@@ -5,6 +5,9 @@
  *
  * Thuộc tính data-*: project (bắt buộc), hub, token-url, position, color-scheme, label, icon, locale,
  * offset-x, offset-y, trigger, fab="false", mount.
+ * Lối vào không cần viết mã: đặt <span data-feedbackhub-launcher hidden></span> ở chỗ muốn có nút (vd. thanh header —
+ * widget vẽ nút và bỏ `hidden` khi sẵn sàng); bong bóng "Góp ý đoạn này" khi bôi đen chữ và danh sách trang ẩn lối vào
+ * bật trên hub (features.textSelection / selectionScope / hidePaths).
  * API JS: window.FeedbackHub = { init(opts), open(), close(), refresh(), hideFab(bool), destroy() }.
  * Hợp đồng API: docs/API.md. Nguyên tắc: không bao giờ gắn dữ liệu ngoài vào innerHTML; hỏng thì im lặng
  * (ẩn nút, console.warn) chứ không làm hỏng trang chủ.
@@ -39,6 +42,9 @@
     title: "Góp ý cải tiến",
     fab_tip: "Góp ý cải tiến trang này",
     fab_wait: "{n} góp ý của bạn đang chờ bạn trả lời",
+    launcher_tip: "Góp ý",
+    sel_btn: "Góp ý đoạn này",
+    sel_body: "Về đoạn: «{text}»",
     close: "Đóng",
     at_page: "📍 Đang ở trang {path}",
     scope_page: "📍 Trang này",
@@ -150,6 +156,9 @@
     title: "Feedback",
     fab_tip: "Send feedback about this page",
     fab_wait: "{n} of your items are waiting for your reply",
+    launcher_tip: "Feedback",
+    sel_btn: "Feedback on this text",
+    sel_body: "About: “{text}”",
     close: "Close",
     at_page: "📍 You are on {path}",
     scope_page: "📍 This page",
@@ -500,6 +509,10 @@
     ".pk-box{position:fixed;border:2px solid var(--p);background:rgba(37,99,235,.16);border-radius:4px;box-shadow:0 0 0 1px #fff;pointer-events:none}",
     ".pk-bar{position:fixed;left:50%;top:16px;transform:translateX(-50%);max-width:calc(100vw - 32px);background:rgba(15,23,42,.94);color:#fff;border-radius:999px;padding:8px 16px;box-shadow:0 6px 18px rgba(0,0,0,.35);text-align:center}",
     ".pk-bar span{opacity:.8}",
+    ".selb{position:fixed;z-index:2147483000;display:inline-flex;align-items:center;gap:6px;max-width:calc(100vw - 16px);padding:6px 12px;border:0;border-radius:999px;background:var(--p);color:var(--pt);font:600 13px/1.2 var(--ff);cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25);animation:fh-pop .12s ease-out;white-space:nowrap}",
+    ".selb:hover{filter:brightness(1.08)}",
+    ".selb:focus-visible{outline:2px solid var(--fg);outline-offset:2px}",
+    "@keyframes fh-pop{from{transform:translateY(4px);opacity:0}to{transform:none;opacity:1}}",
     "@keyframes fh-in{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}",
     "@keyframes fh-in-l{from{transform:translateX(-24px);opacity:0}to{transform:none;opacity:1}}",
     "@keyframes fh-spin{to{transform:rotate(360deg)}}",
@@ -508,6 +521,20 @@
     "@media (max-width:640px){.drawer{width:100vw}.pos-br.open .fab,.pos-tr.open .fab,.pos-bl.open .fab,.pos-tl.open .fab{display:none}.in,.btn,select.in{font-size:16px}.hd,.scroll{padding-left:16px;padding-right:16px}.hd-s{max-width:calc(100vw - 96px)}.card-h{flex-wrap:wrap}.ct{flex:1 1 100%}}",
     "@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}",
     "@media print{:host,.fh{display:none!important}}",
+  ].join("\n");
+
+  /* Nút gắn trong trang (data-feedbackhub-launcher): kế thừa màu chữ và phông của chỗ đặt nó, như một biểu tượng của header. */
+  var LAUNCHER_CSS = [
+    ":host{display:inline-flex;vertical-align:middle}",
+    ":host([hidden]){display:none}",
+    "button{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;min-width:36px;padding:0;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:14px;line-height:1;cursor:pointer;transition:background-color .15s}",
+    "button.lb{padding:0 12px 0 10px}",
+    "button:hover{background:rgba(127,127,127,.15)}",
+    "button:focus-visible{outline:2px solid currentColor;outline-offset:2px}",
+    "svg{width:18px;height:18px;flex:none}",
+    ".b{position:absolute;right:-2px;top:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#be123c;color:#fff;font:700 10px/16px system-ui,sans-serif;text-align:center}",
+    ".b[hidden]{display:none}",
+    "@media print{:host{display:none!important}}",
   ].join("\n");
 
   /* ───────────────────────────── Xác thực ───────────────────────────── */
@@ -615,7 +642,7 @@
     }
 
     /* — cấu hình — */
-    var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, screenshot: "optional", models: [] }, cfg.features || {});
+    var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, screenshot: "optional", models: [], textSelection: false, selectionScope: "", hidePaths: [] }, cfg.features || {});
     var models = Array.isArray(feat.models) ? feat.models.filter(function (m) { return m && typeof m.id === "string"; }) : [];
     var allTypes = (Array.isArray(cfg.types) ? cfg.types : []).filter(function (x) { return x && typeof x.id === "string"; });
     var formTypes = allTypes.filter(function (x) { return x.kind !== "question"; });
@@ -631,7 +658,7 @@
     /* — trạng thái — */
     var S = {
       open: false, picking: false, items: [], awaiting: [], openId: null, cards: {}, files: [], target: null,
-      sel: null, scope: "page", fabHidden: false, openedVia: null, gen: 0, busy: false, dup: null,
+      sel: null, scope: "page", fabHidden: false, pathHidden: false, openedVia: null, gen: 0, busy: false, dup: null,
     };
 
     /* — DOM gốc — */
@@ -964,7 +991,11 @@
       if (F.type) F.type.value = ct.id;
       onTypeChange();
       F.before.value = S.sel.slice(0, 2000);
-      if (!F.title.value.trim()) F.title.value = t("suggest_title", { text: S.sel.replace(/\s+/g, " ").slice(0, 40) });
+      // Tiêu đề trống hoặc vẫn là tiêu đề widget tự điền lần trước (người dùng chưa sửa) → đặt theo đoạn mới.
+      if (!F.title.value.trim() || F.title.value === S.autoTitle) {
+        F.title.value = t("suggest_title", { text: S.sel.replace(/\s+/g, " ").slice(0, 40) });
+        S.autoTitle = F.title.value;
+      }
       S.sel = null;
       F.offer.hidden = true;
       F.after.focus();
@@ -1510,8 +1541,9 @@
     }
 
     function paintFab() {
+      paintLaunchers();
       if (!fab) return;
-      fab.hidden = !fabEnabled || S.fabHidden;
+      fab.hidden = !fabEnabled || S.fabHidden || S.pathHidden;
       fab.textContent = "";
       fab.appendChild(document.createTextNode(S.open ? "✕" : ICONS[TH.icon]));
       var n = S.awaiting.length;
@@ -1563,6 +1595,7 @@
       wrap.classList.toggle("open", v);
       paintFab();
       if (v) {
+        hideSelBubble();
         S.lastFocus = S.openedVia === "trigger" && S.triggerEl ? S.triggerEl : document.activeElement;
         titleSub.textContent = t("at_page", { path: location.pathname });
         var ts = lastSel && Date.now() - lastSel.at < 120000 ? lastSel.text : null;
@@ -1689,11 +1722,208 @@
       }
     }
 
+    /* ── ẩn mọi lối vào ở các trang trong features.hidePaths (vd. trang làm bài thi) ── */
+    var hidePaths = (Array.isArray(feat.hidePaths) ? feat.hidePaths : []).filter(function (p) {
+      return typeof p === "string" && p.charAt(0) === "/";
+    });
+    function pathHidden() {
+      var p = location.pathname;
+      return hidePaths.some(function (x) {
+        x = x.replace(/\/+$/, "");
+        return x ? p === x || p.indexOf(x + "/") === 0 : p === "/";
+      });
+    }
+    function syncPath() {
+      var hid = pathHidden();
+      if (hid === S.pathHidden) return;
+      S.pathHidden = hid;
+      if (hid) hideSelBubble();
+      paintFab();
+    }
+
+    /* ── nút gắn trong trang: ứng dụng chủ chỉ đặt <span data-feedbackhub-launcher hidden></span> ở chỗ muốn ──
+       Widget vẽ nút vào Shadow DOM của chính phần tử đó (màu chữ, phông kế thừa từ trang để hợp với thanh header),
+       bỏ `hidden` khi đã sẵn sàng; chưa đăng nhập / widget không nạp được thì phần tử vẫn ẩn. Giá trị "label" → có chữ. */
+    var launchers = [];
+    function bulbSvg() {
+      var NS = "http://www.w3.org/2000/svg";
+      var s = document.createElementNS(NS, "svg");
+      var a = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" };
+      Object.keys(a).forEach(function (k) { s.setAttribute(k, a[k]); });
+      ["M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5", "M9 18h6", "M10 22h4"].forEach(function (d) {
+        var p = document.createElementNS(NS, "path");
+        p.setAttribute("d", d);
+        s.appendChild(p);
+      });
+      return s;
+    }
+    function mountLaunchers() {
+      if (mountEl) return;
+      var els;
+      try { els = document.querySelectorAll("[data-feedbackhub-launcher]"); } catch (e) { return; }
+      Array.prototype.forEach.call(els, function (el) {
+        if (el.__fhLauncher) return;
+        var root;
+        try { root = el.shadowRoot || el.attachShadow({ mode: "open" }); } catch (e) {
+          el.__fhLauncher = true;
+          log("Không gắn được nút vào phần tử data-feedbackhub-launcher (thẻ này không hỗ trợ Shadow DOM — dùng <span> hoặc <div>).");
+          return;
+        }
+        while (root.firstChild) root.removeChild(root.firstChild);
+        var withLabel = el.getAttribute("data-feedbackhub-launcher") === "label";
+        var badgeEl = h("span", { class: "b", hidden: true, "aria-hidden": "true" });
+        var L = { el: el, root: root, badge: badgeEl, btn: null };
+        L.btn = h("button", { type: "button", class: withLabel ? "lb" : "", "aria-haspopup": "dialog", onclick: guard(function () {
+          S.openedVia = "trigger";
+          S.triggerEl = L.btn;
+          setOpen(!S.open);
+        }) }, [bulbSvg(), withLabel ? h("span", { text: TH.label || t("launcher_tip") }) : null, badgeEl]);
+        root.appendChild(h("style", { text: LAUNCHER_CSS }));
+        root.appendChild(L.btn);
+        el.__fhLauncher = L;
+        launchers.push(L);
+      });
+      launchers = launchers.filter(function (L) { return L.el.isConnected; });
+      paintLaunchers();
+    }
+    function paintLaunchers() {
+      if (!launchers || !launchers.length) return;
+      var n = S.awaiting.length;
+      var label = n ? t("fab_wait", { n: n }) : TH.label || t("launcher_tip");
+      launchers.forEach(function (L) {
+        L.el.hidden = S.pathHidden;
+        L.btn.title = label;
+        L.btn.setAttribute("aria-label", label);
+        L.btn.setAttribute("aria-expanded", String(S.open));
+        L.badge.textContent = n > 99 ? "99+" : String(n);
+        L.badge.hidden = !n;
+      });
+    }
+    disposers.push(function () {
+      launchers.forEach(function (L) {
+        while (L.root.firstChild) L.root.removeChild(L.root.firstChild);
+        L.el.hidden = true;
+        L.el.__fhLauncher = null;
+      });
+      launchers = [];
+    });
+
+    /* ── bôi đen chữ → bong bóng "Góp ý đoạn này" (features.textSelection) ──
+       Đặt DƯỚI vùng chọn: trên điện thoại, menu chép/dán của hệ điều hành nằm phía trên. Bấm chuột phải (menu riêng của
+       ứng dụng) hay cuộn trang thì bong bóng tự ẩn để không chồng lên giao diện của ứng dụng. */
+    var selBtn = null, selText = null, selEl = null, selTimer = null;
+    function hideSelBubble() {
+      if (selBtn) selBtn.hidden = true;
+      selText = null;
+      selEl = null;
+    }
+    function selectable(node) {
+      var el = node && (node.nodeType === 1 ? node : node.parentElement);
+      if (!el || !el.closest) return null;
+      if (el.closest("input,textarea,select,[contenteditable]:not([contenteditable='false'])")) return null;
+      if (!feat.selectionScope) return el;
+      try { return el.closest(feat.selectionScope) ? el : null; } catch (e) { return null; }
+    }
+    function evalSelection() {
+      if (!selBtn) return;
+      if (S.open || S.picking || S.pathHidden) { hideSelBubble(); return; }
+      var s = document.getSelection && document.getSelection();
+      if (!s || s.isCollapsed || !s.rangeCount) { hideSelBubble(); return; }
+      var r = s.getRangeAt(0);
+      var el = selectable(r.commonAncestorContainer);
+      var txt = s.toString().trim();
+      if (!el || txt.replace(/\s+/g, "").length < 2) { hideSelBubble(); return; }
+      var rects = r.getClientRects();
+      var last = rects.length ? rects[rects.length - 1] : r.getBoundingClientRect();
+      if (!last || (!last.width && !last.height)) { hideSelBubble(); return; }
+      selText = txt.slice(0, 2000);
+      selEl = el;
+      selBtn.hidden = false;
+      var bw = selBtn.offsetWidth || 160, bh = selBtn.offsetHeight || 30;
+      var x = Math.max(8, Math.min(last.right - bw / 2, W.innerWidth - bw - 8));
+      var y = last.bottom + 10;
+      if (y + bh > W.innerHeight - 8) y = Math.max(8, (rects.length ? rects[0] : last).top - bh - 10);
+      selBtn.style.left = x + "px";
+      selBtn.style.top = y + "px";
+    }
+    function openWithSelection(txt, el) {
+      lastSel = null;
+      S.openedVia = "selection";
+      setOpen(true);
+      // Sau bước focus mặc định của setOpen (cũng setTimeout 0) để con trỏ nằm đúng ô cần gõ.
+      setTimeout(guard(function () {
+        if (el) {
+          var one = txt.replace(/\s+/g, " ");
+          S.target = { selector: cssPath(el), text: one.slice(0, 200), label: "«" + one.slice(0, 40) + (one.length > 40 ? "…" : "") + "»" };
+          setScope("page");
+          paintChip();
+        }
+        S.sel = txt;
+        if (contentType()) { useSelection(); return; }
+        // Dự án không có loại "nội dung": đưa đoạn trích vào mô tả.
+        S.sel = null;
+        F.offer.hidden = true;
+        var q = t("sel_body", { text: txt.length > 300 ? txt.slice(0, 300) + "…" : txt });
+        F.body.value = F.body.value.trim() ? q + "\n\n" + F.body.value : q + "\n\n";
+        try { F.body.focus(); } catch (e) {}
+      }), 0);
+    }
+    if (feat.textSelection && !mountEl) {
+      selBtn = h("button", {
+        type: "button",
+        class: "selb",
+        hidden: true,
+        // Giữ nguyên vùng bôi đen khi bấm.
+        onmousedown: function (e) { e.preventDefault(); },
+        onclick: guard(function () {
+          var tx = selText, el = selEl;
+          hideSelBubble();
+          if (tx) openWithSelection(tx, el);
+        }),
+      }, [h("span", { "aria-hidden": "true", text: ICONS.pencil }), h("span", { text: t("sel_btn") })]);
+      wrap.appendChild(selBtn);
+      var later = function () {
+        clearTimeout(selTimer);
+        selTimer = setTimeout(guard(evalSelection), 30);
+      };
+      on(document, "mouseup", later);
+      on(document, "keyup", later);
+      on(document, "touchend", later);
+      on(document, "selectionchange", guard(function () {
+        var s = document.getSelection && document.getSelection();
+        if (!s || s.isCollapsed) hideSelBubble();
+        else if (selBtn && !selBtn.hidden) later();
+      }));
+      on(document, "contextmenu", guard(hideSelBubble));
+      on(W, "scroll", guard(hideSelBubble), { capture: true, passive: true });
+      on(W, "resize", guard(hideSelBubble));
+      disposers.push(function () { clearTimeout(selTimer); });
+    }
+
+    /* ── theo dõi trang: ứng dụng một trang (SPA) đổi đường dẫn và vẽ lại header mà không tải lại trang ── */
+    var scanTimer = null;
+    function scheduleScan() {
+      if (scanTimer) return;
+      scanTimer = setTimeout(guard(function () {
+        scanTimer = null;
+        syncPath();
+        mountLaunchers();
+      }), 150);
+    }
+    try {
+      var bodyObs = new MutationObserver(scheduleScan);
+      bodyObs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+      disposers.push(function () { bodyObs.disconnect(); clearTimeout(scanTimer); });
+    } catch (e) {}
+    on(W, "popstate", guard(syncPath));
+
     /* ── gắn vào trang ── */
     if (mountEl) mountEl.appendChild(host);
     else (document.body || document.documentElement).appendChild(host);
     host.style.cssText = mountEl ? "all:initial;display:block" : "all:initial";
     applyTheme();
+    syncPath();
+    mountLaunchers();
 
     if (!anon) {
       loadSummary();
@@ -1795,7 +2025,7 @@
 
   W.FeedbackHub = {
     __loaded: true,
-    version: "1.0.0",
+    version: "1.1.0",
     init: function (o) {
       explicitInit = true;
       var base = DATA_SCRIPT && DATA_SCRIPT.dataset.project ? readData(DATA_SCRIPT) : {};

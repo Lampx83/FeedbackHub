@@ -22,7 +22,8 @@ Cấu hình công khai cho widget. Không chứa khoá hay webhook.
 { "slug": "my-app", "name": "Ứng dụng của tôi", "mode": "collect", "anonymousSubmit": false,
   "types": [{ "id": "function", "label": "Đề xuất chức năng", "kind": "function" }],
   "features": { "scopePicker": true, "elementPicker": true, "voice": true, "attachments": true,
-                "planApproval": false, "successCriteria": false, "screenshot": "optional", "models": [] },
+                "planApproval": false, "successCriteria": false, "screenshot": "optional", "models": [],
+                "textSelection": false, "selectionScope": "", "hidePaths": [] },
   "theme": { "primary": "#1d4ed8", "position": "bottom-right" } }
 ```
 
@@ -178,4 +179,4 @@ Cookie `hub_session` (đăng nhập `POST /api/admin/login { email, password }`,
 | `GET/POST /api/admin/keys` · `DELETE /api/admin/keys/{id}` | Khoá operator: liệt kê / cấp / thu hồi (khoá worker cũng thu hồi qua route này) |
 | `GET /api/admin/feedback` · `GET/PATCH /api/admin/feedback/{id}` | Bảng góp ý, chi tiết, trả lời/đổi trạng thái |
 
-`PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý), `theme`, `webhookUrl`. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.
+`PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý; `textSelection`: bật bong bóng "Góp ý đoạn này" khi bôi đen chữ; `selectionScope`: bộ chọn CSS giới hạn vùng bôi đen, ≤ 200 ký tự, không chứa `<` `>`; `hidePaths`: tối đa 30 tiền tố đường dẫn bắt đầu bằng `/` mà widget ẩn mọi lối vào), `theme`, `webhookUrl`. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.

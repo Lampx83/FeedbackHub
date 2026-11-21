@@ -3,11 +3,14 @@
  * (scripts/test-embed-snippets.mjs). Chỉ in ra thuộc tính khác mặc định của widget, để mã ngắn và dễ đọc.
  */
 
-export type OpenMode = "fab" | "trigger" | "mount";
+export type OpenMode = "fab" | "launcher" | "trigger" | "mount";
 export type EmbedOpts = {
   slug: string;
   hub: string;
-  /** fab = nút nổi; trigger = mở từ nút/menu có sẵn của ứng dụng; mount = nhúng bảng góp ý vào một vùng của trang. */
+  /**
+   * fab = nút nổi; launcher = nút do widget vẽ vào chỗ ứng dụng đặt sẵn (vd. header); trigger = mở từ nút/menu có sẵn của
+   * ứng dụng; mount = nhúng bảng góp ý vào một vùng của trang.
+   */
   open: OpenMode;
   trigger: string;
   mount: string;
@@ -49,10 +52,12 @@ export const DEFAULT_OPTS: Omit<EmbedOpts, "slug" | "hub"> = {
 };
 
 /** Cặp [tên tuỳ chọn init(), giá trị] khác mặc định, theo thứ tự đọc dễ hiểu. */
-function pairs(o: EmbedOpts): [string, string | number][] {
-  const p: [string, string | number][] = [["project", o.slug]];
+function pairs(o: EmbedOpts): [string, string | number | boolean][] {
+  const p: [string, string | number | boolean][] = [["project", o.slug]];
   if (o.auth === "token" && o.tokenUrl.trim()) p.push(["tokenUrl", o.tokenUrl.trim()]);
   if (o.open === "trigger" && o.trigger.trim()) p.push(["trigger", o.trigger.trim()]);
+  // Hai kiểu mở này thay cho nút nổi → tắt nút nổi (widget mặc định vẽ nó).
+  if (o.open === "trigger" || o.open === "launcher") p.push(["fab", false]);
   if (o.open === "mount" && o.mount.trim()) p.push(["mount", o.mount.trim()]);
   if (o.open === "fab") {
     if (o.position) p.push(["position", o.position]);
@@ -81,7 +86,7 @@ export function scriptSnippet(o: EmbedOpts): string {
 
 /** Dạng init() bằng JavaScript — cần khi muốn gửi kèm ngữ cảnh nội dung (getContext). */
 export function initSnippet(o: EmbedOpts): string {
-  const lines = pairs(o).map(([k, v]) => `      ${k}: ${typeof v === "number" ? v : jsStr(v)},`);
+  const lines = pairs(o).map(([k, v]) => `      ${k}: ${typeof v === "string" ? jsStr(v) : v},`);
   return `<script src="${o.hub}/widget.js" defer></script>
 <script>
   window.addEventListener("load", function () {
@@ -106,6 +111,11 @@ export function companionHtml(o: EmbedOpts): { label: string; code: string } | n
     if (sel === DEFAULT_TRIGGER) return { label: "Nút của ứng dụng — bấm vào là mở góp ý (thêm thuộc tính này vào bất kỳ nút/mục menu nào)", code: `<button type="button" data-feedbackhub-open>Góp ý</button>` };
     return { label: "Bấm vào phần tử khớp bộ chọn dưới đây sẽ mở góp ý", code: `/* ${sel} */` };
   }
+  if (o.open === "launcher")
+    return {
+      label: "Đặt phần tử này ở chỗ muốn có nút (vd. cạnh chuông thông báo trên header) — widget tự vẽ nút cùng màu chữ của chỗ đó và chỉ hiện khi người dùng gửi được góp ý. Thêm =\"label\" để có chữ cạnh biểu tượng",
+      code: `<span data-feedbackhub-launcher hidden></span>`,
+    };
   if (o.open === "mount") return { label: "Vùng nhúng — bảng góp ý hiện ngay trong trang thay vì ngăn kéo", code: `<div id="${o.mount.trim().replace(/^#/, "")}"></div>` };
   return null;
 }
@@ -140,7 +150,7 @@ export async function GET() {
   return NextResponse.json({ token: \`\${head}.\${body}.\${sig}\` }, { headers: { "Cache-Control": "no-store" } });
 }`;
   const initPairs = pairs(o).filter(([k]) => k !== "project");
-  const initLines = initPairs.map(([k, v]) => `          ${k}: ${typeof v === "number" ? v : jsStr(v)},`).join("\n");
+  const initLines = initPairs.map(([k, v]) => `          ${k}: ${typeof v === "string" ? jsStr(v) : v},`).join("\n");
   const comp = `// components/FeedbackHub.tsx
 "use client";
 import Script from "next/script";

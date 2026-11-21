@@ -162,12 +162,26 @@ Hết. Nút 💡 hiện ở góc phải dưới cho người đã đăng nhập;
 | `data-icon` | `lightbulb` | `lightbulb` · `chat` · `pencil` · `flag` · `plus` |
 | `data-locale` | `vi` | `vi` · `en` |
 | `data-offset-x`, `data-offset-y` | `20` | Cách mép (px), 0–200 |
-| `data-trigger` | — | Bộ chọn CSS của nút **có sẵn** trong ứng dụng; bấm vào đó mở widget (và ẩn nút nổi mặc định) |
+| `data-trigger` | — | Bộ chọn CSS của nút **có sẵn** trong ứng dụng; bấm vào đó mở widget. Nút nổi vẫn hiện — thêm `data-fab="false"` nếu không muốn |
 | `data-fab` | `true` | `false` = không vẽ nút nổi (dùng cùng `data-trigger` hoặc `FeedbackHub.open()`) |
 | `data-mask` | — | Bộ chọn CSS các vùng cần **che trong ảnh chụp trang** (cộng thêm với `[data-feedbackhub-mask]`, ô mật khẩu và ô `autocomplete=cc-*` luôn bị che) |
 | `data-mount` | — | Bộ chọn CSS: nhúng bảng góp ý **vào trang** thay vì ngăn kéo |
 
 Giao diện (màu, bo góc, phông…) đặt ở bảng điều khiển hoặc bằng biến CSS — xem [THEMING.md](THEMING.md).
+
+### Lối vào không cần viết mã
+
+Ngoài nút nổi, có hai lối vào mà ứng dụng chủ gần như không phải viết gì:
+
+- **Nút đặt trong trang** — thêm một phần tử vào đúng chỗ muốn có nút, ví dụ cạnh chuông thông báo trên header:
+  ```html
+  <span data-feedbackhub-launcher hidden></span>          <!-- chỉ biểu tượng -->
+  <span data-feedbackhub-launcher="label" hidden></span>  <!-- biểu tượng + chữ "Góp ý" -->
+  ```
+  Widget vẽ nút vào Shadow DOM của chính phần tử đó, **kế thừa màu chữ và phông** của chỗ đặt (nên hợp với thanh header sáng hay tối), hiện số góp ý đang chờ người dùng trả lời, và chỉ bỏ `hidden` khi người dùng gửi được góp ý (đã có token, hoặc dự án cho gửi ẩn danh). Ứng dụng một trang (React, Vue…) vẽ lại header thì widget tự gắn lại. Dùng `<span>` hoặc `<div>` (thẻ phải hỗ trợ Shadow DOM). Thường đi kèm `data-fab="false"` để bỏ nút nổi.
+- **Góp ý khi bôi đen chữ** — bật trên bảng điều khiển (Dự án → Tính năng → *Lối vào hộp góp ý*). Người dùng bôi đen một đoạn thì hiện bong bóng "✏️ Góp ý đoạn này" ngay dưới đoạn đó; bấm vào là mở ngăn góp ý với đoạn chữ đã điền vào ô "Chữ hiện tại" (loại góp ý "nội dung" nếu dự án có) và vị trí trên trang. Giới hạn vùng bằng bộ chọn CSS (vd. `#lesson-content`) để không hiện ở menu hay bảng điều khiển. Ô nhập liệu không bao giờ hiện bong bóng; bấm chuột phải hay cuộn trang thì bong bóng tự ẩn để không chồng lên menu riêng của ứng dụng.
+
+Cùng chỗ đó có **Trang không hiện lối vào nào** (`hidePaths`): mỗi dòng một tiền tố đường dẫn, ví dụ `/thi` — nút nổi, nút trong trang và bong bóng đều ẩn ở `/thi` và `/thi/...` (trang làm bài thi, trang trình chiếu). Widget theo dõi cả khi ứng dụng một trang đổi đường dẫn mà không tải lại.
 
 ### API JavaScript
 

@@ -21,14 +21,18 @@
     #host-fab { position: fixed; left: 16px; bottom: 16px; padding: 8px 14px; border-radius: 999px; border: 0; background: #7c3aed; color: #fff; cursor: pointer; font: 14px system-ui; }
     #host-fab[hidden] { display: none; }
     #inline-mount { margin-top: 12px; }
+    .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #1c1917; color: #e7e5e4; font: 14px system-ui, sans-serif; }
+    .topbar b { margin-right: auto; }
     /* Thử biến CSS của trang chủ xuyên Shadow DOM: bỏ chú thích để đổi màu nút. */
     /* :root { --fh-primary: #b45309; --fh-radius: 4px; } */
   </style>
 </head>
 <body>
+  <!-- Thanh header giả lập: nút góp ý do widget vẽ vào <span data-feedbackhub-launcher> (không cần JavaScript của ứng dụng). -->
+  <div class="topbar"><b>Ứng dụng chủ</b><span>🔔</span><span data-feedbackhub-launcher hidden></span><span data-feedbackhub-launcher="label" hidden></span></div>
   <main>
     <h1 id="page-title">Trang giả lập ứng dụng chủ</h1>
-    <p>Đây là trang thử cho <code>widget.js</code>. Hãy bôi đen một đoạn chữ rồi bấm nút 💡 để thử "Sửa chữ này".</p>
+    <p>Đây là trang thử cho <code>widget.js</code>. Hãy bôi đen một đoạn chữ: nếu dự án bật "Góp ý khi bôi đen chữ", bong bóng "Góp ý đoạn này" hiện ngay dưới đoạn đó. Nút 💡 trên thanh header phía trên do widget tự vẽ vào <code>&lt;span data-feedbackhub-launcher&gt;</code>.</p>
 
     <div class="panel" id="controls" data-testid="controls">
       <div>

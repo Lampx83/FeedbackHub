@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AddButton, ConfirmDialog, Modal } from "../ui/Modal";
-import { Alert, Button, Card, EmptyState, Field, Input, Spinner, Switch, Toolbar } from "../ui/primitives";
+import { Alert, Button, Card, EmptyState, Field, Input, Spinner, Switch, Textarea, Toolbar } from "../ui/primitives";
 import { SaveBar, useSaveBar } from "./SaveBar";
 import type { ProjectData, Save } from "./types";
 
@@ -33,9 +33,71 @@ export function FeaturesTab({ project, save }: { project: ProjectData; save: Sav
         </div>
         <SaveBar dirty={dirty} busy={bar.busy} error={bar.error} saved={bar.saved} onSave={() => void bar.run({ features: flags })} onReset={() => setFlags(Object.fromEntries(FLAGS.map((f) => [f.key, project.features[f.key]])) as Record<FlagKey, boolean>)} />
       </Card>
+      <EntryPointsSection project={project} save={save} />
       <ScreenshotSection project={project} save={save} />
       <ModelsSection project={project} save={save} />
     </div>
+  );
+}
+
+const linesOf = (s: string) =>
+  s
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+/** Lối vào hộp góp ý ngoài nút nổi — đều cấu hình ở đây, ứng dụng chủ không phải viết thêm mã. */
+function EntryPointsSection({ project, save }: { project: ProjectData; save: Save }) {
+  const init = () => ({
+    textSelection: project.features.textSelection ?? false,
+    selectionScope: project.features.selectionScope ?? "",
+    hidePaths: (project.features.hidePaths ?? []).join("\n"),
+  });
+  const [v, setV] = useState(init);
+  const bar = useSaveBar(save);
+  const cur = init();
+  const dirty = v.textSelection !== cur.textSelection || v.selectionScope.trim() !== cur.selectionScope || linesOf(v.hidePaths).join("\n") !== cur.hidePaths;
+  const badPath = linesOf(v.hidePaths).find((p) => !p.startsWith("/") || /\s/.test(p));
+  const code = (s: string) => <code className="font-mono text-[13px]">{s}</code>;
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-base font-semibold">Lối vào hộp góp ý</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Ngoài nút nổi, người dùng còn mở được hộp góp ý từ một nút đặt sẵn trong trang (ví dụ cạnh chuông thông báo ở header): ứng dụng chỉ cần thêm {code("<span data-feedbackhub-launcher hidden></span>")} vào đúng chỗ, widget tự vẽ nút cùng màu chữ của chỗ đó và chỉ hiện khi người dùng gửi được góp ý. Muốn có chữ cạnh biểu tượng thì đặt giá trị {code('"label"')}. Tắt nút nổi bằng {code('data-fab="false"')}.
+      </p>
+      <div className="mt-2 divide-y divide-line">
+        <Switch
+          checked={v.textSelection}
+          onChange={(x) => setV((s) => ({ ...s, textSelection: x }))}
+          label="Góp ý khi bôi đen chữ"
+          description="Người dùng bôi đen một đoạn chữ thì hiện bong bóng “Góp ý đoạn này” ngay dưới đoạn đó; bấm vào là mở hộp góp ý với đoạn chữ điền sẵn (loại “nội dung” nếu dự án có, kèm vị trí trên trang). Hợp nhất để báo sai nội dung."
+        />
+      </div>
+      <div className="mt-4 space-y-4">
+        <Field label="Chỉ hiện bong bóng trong vùng (bộ chọn CSS, tuỳ chọn)" hint={<>Ví dụ {code("#lesson-content, article")}. Để trống = cả trang. Ô nhập liệu không bao giờ hiện bong bóng.</>}>
+          <Input value={v.selectionScope} disabled={!v.textSelection} maxLength={200} placeholder="#lesson-content" onChange={(e) => setV((s) => ({ ...s, selectionScope: e.target.value }))} />
+        </Field>
+        <Field
+          label="Trang không hiện lối vào nào"
+          hint={<>Mỗi dòng một tiền tố đường dẫn, ví dụ {code("/thi")} ẩn cả {code("/thi/abc")}. Áp dụng cho nút nổi, nút đặt trong trang và bong bóng bôi đen — dùng cho trang làm bài thi, trang trình chiếu.</>}
+          error={badPath ? `“${badPath}” phải bắt đầu bằng “/” và không có khoảng trắng` : null}
+        >
+          <Textarea rows={4} value={v.hidePaths} placeholder={"/thi\n/exam-take"} className="font-mono text-[13px]" onChange={(e) => setV((s) => ({ ...s, hidePaths: e.target.value }))} />
+        </Field>
+      </div>
+      <SaveBar
+        dirty={dirty}
+        busy={bar.busy}
+        error={bar.error}
+        saved={bar.saved}
+        onSave={() => {
+          if (badPath) return;
+          void bar.run({ features: { textSelection: v.textSelection, selectionScope: v.selectionScope.trim(), hidePaths: linesOf(v.hidePaths) } });
+        }}
+        onReset={() => setV(init())}
+      />
+    </Card>
   );
 }
 

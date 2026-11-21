@@ -317,9 +317,10 @@ function EmbedOptions({ o, set, project }: { o: OptsState; set: <K extends keyof
     <Card className="mb-3 mt-3 p-4">
       <h3 className="text-sm font-semibold">Tuỳ chọn — mã bên dưới đổi theo</h3>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <Field label="Cách mở góp ý" hint={o.open === "trigger" ? "Không vẽ nút nổi: mở từ nút/mục menu của ứng dụng. Hợp khi các góc màn hình đã kín." : o.open === "mount" ? "Bảng góp ý hiện ngay trong một vùng của trang." : "Nút nổi ở góc màn hình."}>
+        <Field label="Cách mở góp ý" hint={o.open === "launcher" ? "Không vẽ nút nổi: widget vẽ một nút nhỏ vào chỗ ứng dụng đặt sẵn (vd. header). Hợp khi các góc màn hình đã kín." : o.open === "trigger" ? "Không vẽ nút nổi: mở từ nút/mục menu của ứng dụng. Hợp khi các góc màn hình đã kín." : o.open === "mount" ? "Bảng góp ý hiện ngay trong một vùng của trang." : "Nút nổi ở góc màn hình."}>
           <Select value={o.open} onChange={(e) => set("open", e.target.value as OptsState["open"])}>
             <option value="fab">Nút nổi</option>
+            <option value="launcher">Nút đặt trong trang (header…)</option>
             <option value="trigger">Từ nút / mục menu có sẵn</option>
             <option value="mount">Nhúng vào một vùng của trang</option>
           </Select>

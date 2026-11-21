@@ -38,6 +38,10 @@ const patch = z
       scopePicker: z.boolean(), elementPicker: z.boolean(), voice: z.boolean(), attachments: z.boolean(),
       planApproval: z.boolean(), successCriteria: z.boolean(), screenshot: z.enum(["off", "optional", "default"]),
       models: z.array(z.object({ id: z.string().min(1).max(60), label: z.string().min(1).max(40) })).max(10),
+      textSelection: z.boolean(),
+      // Bộ chọn CSS (widget dùng trong try/catch, không chèn vào HTML). Chặn ký tự điều khiển và ngoặc nhọn cho chắc.
+      selectionScope: z.string().max(200).regex(/^[^<>\p{Cc}]*$/u, "Bộ chọn CSS không hợp lệ"),
+      hidePaths: z.array(z.string().max(100).regex(/^\/[^\s<>"'`\\]*$/u, "Mỗi đường dẫn phải bắt đầu bằng “/”, không có khoảng trắng")).max(30),
     }).partial(),
     theme: z.unknown(),
     webhookUrl: z.string().url().nullable(),

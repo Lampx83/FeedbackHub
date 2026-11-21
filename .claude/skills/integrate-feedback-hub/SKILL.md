@@ -26,6 +26,7 @@ Tham khảo đầy đủ: `docs/INTEGRATION.md` trong repo Feedback Hub (https:/
    <script src="https://HUB/widget.js" data-project="SLUG" data-token-url="/api/feedback-token" defer></script>
    ```
    Với Next.js dùng `next/script` (`strategy="afterInteractive"`); với SPA có thể gọi `FeedbackHub.init({...})` sau đăng nhập và `FeedbackHub.destroy()` khi đăng xuất.
+   **Chỗ đặt nút — viết ít mã nhất có thể, để hub làm phần còn lại.** Nếu góc màn hình đã kín (nút chat, menu nổi…), đừng tự viết nút hay logic ẩn/hiện: đặt `<span data-feedbackhub-launcher hidden></span>` cạnh các biểu tượng của header và thêm `data-fab="false"` — widget tự vẽ nút, tự ẩn khi chưa đăng nhập. Góp ý khi bôi đen chữ và danh sách trang ẩn lối vào (trang thi, trình chiếu) **bật trên hub** (Dự án → Tính năng → Lối vào hộp góp ý), không viết mã trong ứng dụng. Xem `docs/INTEGRATION.md#lối-vào-không-cần-viết-mã`.
 4. **CSP**: nếu ứng dụng có Content-Security-Policy, thêm origin của hub vào `script-src` và `connect-src`.
 5. **CORS bên hub**: nhắc người dùng thêm origin của ứng dụng (cả `http://localhost:PORT` khi dev) vào `allowedOrigins` của dự án trên hub.
 6. **Giao diện (tuỳ chọn)**: nếu ứng dụng có design token, đặt `--fh-primary`, `--fh-radius`… trỏ vào token (xem `docs/THEMING.md`).
