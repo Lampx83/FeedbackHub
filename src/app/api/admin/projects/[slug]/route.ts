@@ -33,7 +33,7 @@ const patch = z
     anonymousSubmit: z.boolean(),
     mode: z.enum(["collect", "execute"]),
     deliver: z.enum(["branch", "deploy"]),
-    types: z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), label: z.string().min(1).max(60), kind: z.enum(["function", "content", "bug", "question", "other"]) })).min(1).max(20),
+    types: z.array(z.object({ id: z.string().regex(/^[a-z0-9_-]{1,40}$/), label: z.string().min(1).max(60), kind: z.enum(["function", "content", "bug", "question", "other"]), roles: z.array(z.string().trim().min(1).max(50)).max(20).optional() })).min(1).max(20),
     features: z.object({
       scopePicker: z.boolean(), elementPicker: z.boolean(), voice: z.boolean(), attachments: z.boolean(),
       planApproval: z.boolean(), successCriteria: z.boolean(), screenshot: z.enum(["off", "optional", "default"]),

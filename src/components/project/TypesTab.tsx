@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AddButton, ConfirmDialog, Modal } from "../ui/Modal";
-import { Alert, Button, Card, EmptyState, Field, Input, KindBadge, SearchInput, Select, Spinner, Toolbar } from "../ui/primitives";
+import { Alert, Button, Card, EmptyState, Field, Input, KindBadge, SearchInput, Select, Spinner, TagsInput, Toolbar } from "../ui/primitives";
 import { KINDS, KIND_LABEL, type Kind, type TypeDef } from "@/lib/status";
 import type { ProjectData, Save } from "./types";
 
@@ -40,6 +40,7 @@ export function TypesTab({ project, save }: { project: ProjectData; save: Save }
                   <div className="font-mono text-xs text-muted">{t.id}</div>
                 </div>
                 <KindBadge kind={t.kind} />
+                {t.roles?.length ? <span className="rounded bg-soft px-1.5 py-0.5 text-xs text-muted" title="Chỉ các vai trò này gửi được loại này">chỉ {t.roles.join(", ")}</span> : null}
                 <div className="flex gap-1.5">
                   <Button variant="secondary" size="sm" onClick={() => setEditing({ index })}>
                     Sửa
@@ -95,6 +96,7 @@ function TypeForm({ existing, taken, atLimit, onClose, onSubmit }: { existing: T
   const [id, setId] = useState(existing?.id ?? "");
   const [label, setLabel] = useState(existing?.label ?? "");
   const [kind, setKind] = useState<Kind>(existing?.kind ?? "other");
+  const [roles, setRoles] = useState<string[]>(existing?.roles ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,7 +106,7 @@ function TypeForm({ existing, taken, atLimit, onClose, onSubmit }: { existing: T
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const err = await onSubmit({ id, label: label.trim(), kind });
+    const err = await onSubmit({ id, label: label.trim(), kind, ...(roles.length ? { roles } : {}) });
     setBusy(false);
     if (typeof err === "string") setError(err);
   }
@@ -142,6 +144,9 @@ function TypeForm({ existing, taken, atLimit, onClose, onSubmit }: { existing: T
               </option>
             ))}
           </Select>
+        </Field>
+        <Field label="Chỉ cho các vai trò (tuỳ chọn)" hint="Giá trị role trong token, ví dụ ADMIN. Để trống = mọi người gửi được góp ý đều chọn được loại này. Quản trị dự án luôn chọn được.">
+          <TagsInput value={roles} onChange={setRoles} placeholder="vd. ADMIN  (Enter để thêm)" />
         </Field>
         {error ? <Alert tone="error">{error}</Alert> : null}
       </form>

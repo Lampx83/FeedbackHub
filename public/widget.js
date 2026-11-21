@@ -648,8 +648,15 @@
     var feat = Object.assign({ scopePicker: true, elementPicker: true, voice: true, attachments: true, planApproval: false, successCriteria: false, screenshot: "optional", models: [], textSelection: false, selectionScope: "", selectionRoles: [], hidePaths: [] }, cfg.features || {});
     var models = Array.isArray(feat.models) ? feat.models.filter(function (m) { return m && typeof m.id === "string"; }) : [];
     var allTypes = (Array.isArray(cfg.types) ? cfg.types : []).filter(function (x) { return x && typeof x.id === "string"; });
-    var formTypes = allTypes.filter(function (x) { return x.kind !== "question"; });
-    if (!formTypes.length) formTypes = allTypes;
+    /* Loại giới hạn theo vai trò (types[].roles): ẩn khỏi danh sách nếu vai trò trong token không khớp. Hub vẫn kiểm lại ở API. */
+    function typeAllowed(x) {
+      if (!x.roles || !x.roles.length) return true;
+      var tok = auth.peek();
+      var role = tok ? jwtPayload(tok).role : null;
+      return !!role && x.roles.indexOf(role) >= 0;
+    }
+    var formTypes = allTypes.filter(function (x) { return x.kind !== "question" && typeAllowed(x); });
+    if (!formTypes.length) formTypes = allTypes.filter(typeAllowed).length ? allTypes.filter(typeAllowed) : allTypes;
     var executeMode = cfg.mode === "execute";
     var mountEl = null;
     if (opts.mount) {

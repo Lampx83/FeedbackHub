@@ -33,7 +33,11 @@ export const KIND_LABEL: Record<Kind, string> = {
   other: "Khác",
 };
 
-export type TypeDef = { id: string; label: string; kind: Kind };
+/**
+ * `roles` (tuỳ chọn): chỉ những `role` trong token này được chọn/gửi loại này; rỗng hoặc vắng = mọi người gửi được góp ý.
+ * Quản trị dự án (adminRoles) luôn được. Kiểm ở API (POST /api/v1/feedback), widget chỉ ẩn khỏi danh sách.
+ */
+export type TypeDef = { id: string; label: string; kind: Kind; roles?: string[] };
 
 /** Loại mặc định cho dự án mới. */
 export const DEFAULT_TYPES: TypeDef[] = [

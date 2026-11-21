@@ -20,7 +20,8 @@ Cấu hình công khai cho widget. Không chứa khoá hay webhook.
 
 ```json
 { "slug": "my-app", "name": "Ứng dụng của tôi", "mode": "collect", "anonymousSubmit": false,
-  "types": [{ "id": "function", "label": "Đề xuất chức năng", "kind": "function" }],
+  "types": [{ "id": "function", "label": "Đề xuất chức năng", "kind": "function" },
+            { "id": "cai-tien", "label": "Yêu cầu cải tiến", "kind": "function", "roles": ["ADMIN"] }],  // roles: tuỳ chọn, rỗng = mọi người
   "features": { "scopePicker": true, "elementPicker": true, "voice": true, "attachments": true,
                 "planApproval": false, "successCriteria": false, "screenshot": "optional", "models": [],
                 "textSelection": false, "selectionScope": "", "selectionRoles": [], "hidePaths": [] },

@@ -248,6 +248,14 @@ try {
   const shotRes = await call("POST", `/api/v1/feedback/${ctxFb.data.feedback?.id}/attachments`, { token: staff, body: shotUp });
   ok(shotRes.status === 200 || shotRes.status === 201, "tải lên trang-chup.png được chấp nhận", JSON.stringify(shotRes.data));
 
+  // ── loại góp ý giới hạn theo vai trò (types[].roles): kiểm ở API, không chỉ ẩn ở widget ──
+  const curTypes = (await call("GET", `/api/v1/config?project=${slug}`)).data.types;
+  const withRoles = await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { types: [...curTypes, { id: "cai-tien", label: "Yêu cầu cải tiến", kind: "function", roles: ["ADMIN"] }] } });
+  ok(withRoles.status === 200 && (await call("GET", `/api/v1/config?project=${slug}`)).data.types.find((t) => t.id === "cai-tien")?.roles?.join() === "ADMIN", "loại có roles lưu và hiện ở cấu hình công khai");
+  ok((await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Nhân viên gửi loại chỉ dành cho ADMIN", type: "cai-tien" } })).status === 403, "vai trò ngoài roles của loại bị từ chối (403)");
+  ok((await call("POST", "/api/v1/feedback", { token: admin, body: { title: "Quản trị gửi loại chỉ dành cho ADMIN", type: "cai-tien" } })).status === 200, "vai trò trong roles gửi được loại đó");
+  ok((await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Nhân viên gửi loại thường", type: curTypes[0].id } })).status === 200, "loại không giới hạn vẫn gửi được bình thường")
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);

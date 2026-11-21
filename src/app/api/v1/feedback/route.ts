@@ -120,6 +120,10 @@ export async function POST(req: Request) {
   if (v.type) {
     const def = types.find((t) => t.id === v.type);
     if (!def) return cors(fail(400, `Loại "${v.type}" không có trong dự án này`));
+    // Loại giới hạn theo vai trò: kiểm ở đây (không chỉ ẩn ở widget). Quản trị dự án luôn được.
+    if (def.roles?.length && !isProjectAdmin(project, a.user) && !(a.user?.role && def.roles.includes(a.user.role))) {
+      return cors(fail(403, "Vai trò của bạn chưa được phép gửi loại góp ý này"));
+    }
     kind = kind ?? def.kind;
   }
   kind = kind ?? "other";
