@@ -1,4 +1,5 @@
 import { compare } from "bcryptjs";
+import { BASE_PATH } from "@/lib/base-path";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { createSession, SESSION_COOKIE } from "@/lib/admin-session";
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/",
+    path: BASE_PATH || "/", // chỉ gửi cookie trong phạm vi hub khi chạy dưới đường dẫn con của tên miền dùng chung
     maxAge: 12 * 3600,
   });
   return json({ ok: true });

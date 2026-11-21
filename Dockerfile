@@ -13,7 +13,8 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
+ARG HUB_BASE_PATH=
+ENV NEXT_TELEMETRY_DISABLED=1 HUB_BASE_PATH=${HUB_BASE_PATH}
 # prisma generate và next build không cần DB thật
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npx prisma generate && npm run build

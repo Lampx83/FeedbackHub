@@ -155,7 +155,7 @@ Hết. Nút 💡 hiện ở góc phải dưới cho người đã đăng nhập;
 |---|---|---|
 | `data-project` | — (**bắt buộc**) | `slug` của dự án |
 | `data-token-url` | — | URL endpoint token (cùng origin, gửi kèm cookie). Phản hồi: `{ "token": "…" }` |
-| `data-hub` | origin của `widget.js` | Địa chỉ hub, khi `widget.js` được phục vụ từ nơi khác |
+| `data-hub` | thư mục chứa `widget.js` (gồm cả tiền tố đường dẫn nếu có) | Địa chỉ hub, khi `widget.js` được phục vụ từ nơi khác |
 | `data-position` | theo cấu hình dự án | `bottom-right` · `bottom-left` · `top-right` · `top-left` |
 | `data-color-scheme` | `auto` | `auto` (theo hệ thống, `html.dark`, `data-theme="dark"`) · `light` · `dark` |
 | `data-label` | (không) | Chữ trên nút; cũng làm tiêu đề ngăn kéo |

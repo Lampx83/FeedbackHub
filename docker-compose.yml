@@ -16,7 +16,11 @@ services:
       retries: 20
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # Chạy dưới đường dẫn con của một tên miền dùng chung, vd. /feedbackhub (xem docs/DEPLOY.md). Rỗng = chạy ở gốc.
+        HUB_BASE_PATH: ${HUB_BASE_PATH:-}
     restart: unless-stopped
     depends_on:
       db:

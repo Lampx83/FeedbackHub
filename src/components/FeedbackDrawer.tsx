@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { withBase } from "@/lib/base-path";
 import { api } from "./api";
 import { formatBytes, formatDateTime } from "./format";
 import { useLoader } from "./useLoader";
@@ -245,16 +246,16 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
                   <>
                     <div className="mb-3 flex flex-wrap gap-3">
                       {fb.attachments.filter((a) => a.mimeType.startsWith("image/")).map((a) => (
-                        <a key={a.id} href={`/api/admin/attachments/${a.id}`} target="_blank" rel="noopener noreferrer" title={a.fileName}>
+                        <a key={a.id} href={withBase(`/api/admin/attachments/${a.id}`)} target="_blank" rel="noopener noreferrer" title={a.fileName}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={`/api/admin/attachments/${a.id}`} alt={a.fileName} loading="lazy" className="max-h-44 max-w-full rounded-lg border border-line object-contain" />
+                          <img src={withBase(`/api/admin/attachments/${a.id}`)} alt={a.fileName} loading="lazy" className="max-h-44 max-w-full rounded-lg border border-line object-contain" />
                         </a>
                       ))}
                     </div>
                     <ul className="divide-y divide-line rounded-lg border border-line">
                       {fb.attachments.map((a) => (
                         <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                          <a href={`/api/admin/attachments/${a.id}`} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-brand underline-offset-2 hover:underline">
+                          <a href={withBase(`/api/admin/attachments/${a.id}`)} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-brand underline-offset-2 hover:underline">
                             {a.fileName}
                           </a>
                           <span className="shrink-0 text-xs text-muted">

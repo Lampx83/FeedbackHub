@@ -31,7 +31,8 @@ openssl rand -base64 32     # → HUB_ENCRYPTION_KEY
 | `AUTH_SECRET` | ✔ | Khoá ký cookie đăng nhập bảng điều khiển (≥ 16 ký tự). Đổi ⇒ mọi người đăng nhập lại |
 | `HUB_ENCRYPTION_KEY` | ✔ | Khoá mã hoá các khoá ký token của dự án trong DB (≥ 16 ký tự). **Mất hoặc đổi ⇒ mọi khoá ký phải cấp lại.** Sao lưu riêng |
 | `HUB_ADMIN_EMAIL`, `HUB_ADMIN_PASSWORD` | ✔ lần đầu | Tài khoản quản trị đầu tiên (mật khẩu ≥ 8 ký tự). Chỉ tạo khi **chưa có** ai; chạy lại không ghi đè mật khẩu. Sau khi đăng nhập được nên xoá `HUB_ADMIN_PASSWORD` khỏi `.env` |
-| `HUB_PUBLIC_URL` | nên | Địa chỉ công khai có `https://`, để in đúng đoạn mã nhúng |
+| `HUB_PUBLIC_URL` | nên | Địa chỉ công khai có `https://` (kèm tiền tố nếu có), để in đúng đoạn mã nhúng |
+| `HUB_BASE_PATH` | | Tiền tố khi chạy dưới đường dẫn con, vd. `/feedbackhub`. Đặt LÚC BUILD |
 | `HUB_PORT` | | Cổng trên máy chủ (mặc định `3100`, chỉ mở cho `127.0.0.1`) |
 
 Chạy:
@@ -57,6 +58,12 @@ feedback.example.com {
     reverse_proxy 127.0.0.1:3100
 }
 ```
+
+**Dưới đường dẫn con của tên miền có sẵn** (vd. `https://fit.neu.edu.vn/feedbackhub`, tên miền do máy khác — Apache/nginx front — phục vụ; không cần tên miền riêng):
+1. Đặt `HUB_BASE_PATH=/feedbackhub` và `HUB_PUBLIC_URL=https://fit.neu.edu.vn/feedbackhub` trong `.env`, rồi `docker compose up -d --build` (tiền tố được nhúng lúc build, đổi là phải build lại).
+2. Trên máy chạy hub: `sudo bash deploy/install-subpath-listener.sh 8003 <IP máy front> /feedbackhub` — mở một cổng nội bộ chỉ cho máy front gọi vào, giữ nguyên tiền tố.
+3. Trên máy front thêm một luật chuyển tiếp, GIỮ tiền tố. Apache: `ProxyPass /feedbackhub/ http://<máy hub>:8003/feedbackhub/` + `ProxyPassReverse` tương ứng (nhớ `ProxyPreserveHost On`, và truyền `X-Forwarded-For`).
+Mã nhúng khi đó là `<script src="https://fit.neu.edu.vn/feedbackhub/widget.js" …>`; mọi địa chỉ API của hub tự nối theo tiền tố này. Công cụ dòng lệnh/MCP/worker đặt `FEEDBACK_HUB_URL=https://fit.neu.edu.vn/feedbackhub` (có cả tiền tố).
 
 **Máy dùng chung nhiều site** (nginx đã chạy các vhost khác): `sudo bash deploy/install-vhost.sh feedback.example.com` tạo vhost riêng, xin chứng chỉ Let's Encrypt (webroot, không đụng site khác) và đặt `HUB_PUBLIC_URL`. Một hub phục vụ được nhiều ứng dụng — mỗi ứng dụng là một *dự án* với khoá ký riêng.
 

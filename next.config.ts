@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
+// Chạy dưới đường dẫn con (vd. "/feedbackhub")? Đặt HUB_BASE_PATH lúc build. Xem src/lib/base-path.ts.
+const basePath = (process.env.HUB_BASE_PATH || "").replace(/\/+$/, "");
+if (basePath && !/^\/[\w\-./]*$/.test(basePath)) throw new Error(`HUB_BASE_PATH không hợp lệ: ${basePath}`);
+
 const nextConfig: NextConfig = {
+  ...(basePath ? { basePath } : {}),
+  env: { NEXT_PUBLIC_BASE_PATH: basePath },
   async headers() {
     return [
       {

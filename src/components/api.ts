@@ -1,4 +1,6 @@
 /** Gọi các route quản trị cùng origin. Hết phiên (401) thì đưa về trang đăng nhập. */
+import { withBase } from "@/lib/base-path";
+
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; status: number };
 
 export async function api<T = Record<string, unknown>>(
@@ -6,7 +8,7 @@ export async function api<T = Record<string, unknown>>(
   opts: { method?: string; body?: unknown; signal?: AbortSignal } = {},
 ): Promise<ApiResult<T>> {
   try {
-    const res = await fetch(path, {
+    const res = await fetch(withBase(path), {
       method: opts.method ?? (opts.body === undefined ? "GET" : "POST"),
       headers: opts.body === undefined ? undefined : { "Content-Type": "application/json" },
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
@@ -16,7 +18,7 @@ export async function api<T = Record<string, unknown>>(
     });
     const data = (await res.json().catch(() => ({}))) as T & { error?: string };
     if (res.status === 401 && !path.endsWith("/login") && typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.href = withBase("/login");
     }
     if (!res.ok) return { ok: false, error: data.error ?? `Lỗi ${res.status}`, status: res.status };
     return { ok: true, data };

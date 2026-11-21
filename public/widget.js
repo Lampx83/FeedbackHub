@@ -20,7 +20,9 @@
   var SCRIPT_ORIGIN = (function () {
     try {
       var s = CUR || DATA_SCRIPT;
-      return new URL(s.src, location.href).origin;
+      // Gồm cả tiền tố đường dẫn khi hub chạy dưới đường dẫn con (https://host/feedbackhub/widget.js → https://host/feedbackhub).
+      var u = new URL(s.src, location.href);
+      return u.origin + u.pathname.replace(/\/[^\/]*$/, "");
     } catch (e) {
       return location.origin;
     }

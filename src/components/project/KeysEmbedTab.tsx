@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { BASE_PATH } from "@/lib/base-path";
 import { api } from "../api";
 import { IssueKeyDialog, KeyTable, type KeyRow } from "../KeysBoard";
 import { AddButton, ConfirmDialog } from "../ui/Modal";
@@ -10,7 +11,7 @@ import { Alert, Button, Card, CodeBlock, CopyButton, EmptyState, Field, Input, S
 import type { ProjectData } from "./types";
 
 const subscribe = () => () => {};
-const browserOrigin = () => window.location.origin;
+const browserOrigin = () => window.location.origin + BASE_PATH;
 const serverOrigin = () => "";
 
 export function KeysEmbedTab({ project, hubUrl, reloadKeys }: { project: ProjectData; hubUrl: string; reloadKeys: () => Promise<void> }) {
