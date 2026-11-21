@@ -138,6 +138,8 @@ Ngôn ngữ khác: bất kỳ thư viện JWT nào hỗ trợ HS256 đều dùng
 
 ## 3. Thẻ `<script>`
 
+> **Không muốn gõ tay?** Mở dự án → tab **Khoá & nhúng** → mục *Tuỳ chọn*: chọn cách mở (nút nổi / nút có sẵn / nhúng vào vùng), vị trí, biểu tượng, ngôn ngữ, vùng che ảnh chụp, gửi ngữ cảnh… và mã bên dưới tự đổi theo (thẻ script, Next.js, Node.js, Python, PHP). Bản Next.js sinh sẵn cả điểm cuối token lẫn component. Chỉ in ra thuộc tính khác mặc định nên mã luôn ngắn.
+
 ```html
 <script src="https://feedback.example.com/widget.js"
         data-project="my-app"

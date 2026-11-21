@@ -5,7 +5,8 @@ import { api } from "../api";
 import { IssueKeyDialog, KeyTable, type KeyRow } from "../KeysBoard";
 import { AddButton, ConfirmDialog } from "../ui/Modal";
 import { SecretDialog } from "../ui/SecretDialog";
-import { Alert, Button, Card, CodeBlock, CopyButton, EmptyState, Spinner, Tabs, Toolbar } from "../ui/primitives";
+import { DEFAULT_OPTS, DEFAULT_TRIGGER, companionHtml, nextKit, scriptSnippet, type EmbedOpts } from "@/lib/embed-snippets";
+import { Alert, Button, Card, CodeBlock, CopyButton, EmptyState, Field, Input, Select, Spinner, Switch, Tabs, Toolbar } from "../ui/primitives";
 import type { ProjectData } from "./types";
 
 const subscribe = () => () => {};
@@ -160,19 +161,18 @@ function SigningSecret({ project }: { project: ProjectData }) {
   );
 }
 
-type Lang = "script" | "node" | "python" | "php";
+type Lang = "script" | "next" | "node" | "python" | "php";
 
 function Embed({ project, hubUrl }: { project: ProjectData; hubUrl: string }) {
   const origin = useSyncExternalStore(subscribe, browserOrigin, serverOrigin);
   const [lang, setLang] = useState<Lang>("script");
   const hub = hubUrl || origin || "https://địa-chỉ-hub";
   const slug = project.slug;
+  const [o, setO] = useState<Omit<EmbedOpts, "slug" | "hub">>(DEFAULT_OPTS);
+  const opts: EmbedOpts = { ...o, slug, hub };
+  const set = <K extends keyof typeof o>(k: K, v: (typeof o)[K]) => setO((x) => ({ ...x, [k]: v }));
 
-  const snippets: Record<Lang, { label: string; code: string }> = {
-    script: {
-      label: "Thẻ <script> (đặt trong trang HTML của ứng dụng)",
-      code: `<script src="${hub}/widget.js" data-project="${slug}" data-token-url="/api/feedback-token" defer></script>`,
-    },
+  const snippets: Record<Exclude<Lang, "script" | "next">, { label: string; code: string }> = {
     node: {
       label: "Node.js — điểm cuối trả token (npm i jose)",
       code: `import { SignJWT } from "jose";
@@ -258,7 +258,8 @@ header('Content-Type: application/json');
 echo json_encode(['token' => feedbackToken($currentUser)]);`,
     },
   };
-  const cur = snippets[lang];
+  const kit = nextKit(opts);
+  const companion = companionHtml(opts);
 
   return (
     <section>
@@ -269,6 +270,7 @@ echo json_encode(['token' => feedbackToken($currentUser)]);`,
       <Tabs
         tabs={[
           { id: "script", label: "Thẻ script" },
+          { id: "next", label: "Next.js" },
           { id: "node", label: "Node.js" },
           { id: "python", label: "Python" },
           { id: "php", label: "PHP" },
@@ -276,14 +278,117 @@ echo json_encode(['token' => feedbackToken($currentUser)]);`,
         value={lang}
         onChange={setLang}
       />
-      <CodeBlock code={cur.code} label={cur.label} />
-      {lang !== "script" ? (
-        <p className="mt-2 text-[13px] text-muted">
-          Biến <code className="font-mono">FEEDBACK_HUB_SECRET</code> là khoá ở mục “Khoá ký token” phía trên. Token phải có <code className="font-mono">prj</code>, <code className="font-mono">aud</code>, <code className="font-mono">exp</code>, <code className="font-mono">uid</code>, <code className="font-mono">name</code>.
-        </p>
-      ) : project.allowedOrigins.length === 0 ? (
-        <Alert tone="warn" className="mt-3">Dự án chưa có “Tên miền được phép” (tab Chung): trình duyệt sẽ không gọi được hub từ trang của ứng dụng cho tới khi bạn thêm tên miền của ứng dụng vào đó.</Alert>
-      ) : null}
+      {lang === "script" || lang === "next" ? <EmbedOptions o={o} set={set} project={project} /> : null}
+      {lang === "script" ? (
+        <>
+          <CodeBlock code={scriptSnippet(opts)} label={o.context ? "JavaScript — init() kèm ngữ cảnh (đặt trong trang HTML của ứng dụng)" : "Thẻ <script> (đặt trong trang HTML của ứng dụng)"} />
+          {companion ? <CodeBlock code={companion.code} label={companion.label} /> : null}
+          {o.auth === "token" ? <p className="mt-2 text-[13px] text-muted">Cần thêm điểm cuối <code className="font-mono">{o.tokenUrl || "/api/feedback-token"}</code> ở máy chủ để ký token — xem các tab Next.js, Node.js, Python, PHP.</p> : null}
+          {project.allowedOrigins.length === 0 ? (
+            <Alert tone="warn" className="mt-3">Dự án chưa có “Tên miền được phép” (tab Chung): trình duyệt sẽ không gọi được hub từ trang của ứng dụng cho tới khi bạn thêm tên miền của ứng dụng vào đó.</Alert>
+          ) : null}
+        </>
+      ) : lang === "next" ? (
+        <>
+          {kit.env ? <CodeBlock code={kit.env} label="1. Biến môi trường" /> : null}
+          {kit.route ? <CodeBlock code={kit.route} label="2. Điểm cuối token (tệp mới)" /> : null}
+          <CodeBlock code={kit.comp} label={kit.route ? "3. Component + 1 dòng trong layout (tệp mới)" : "1. Component + 1 dòng trong layout (tệp mới)"} />
+          {companion ? <CodeBlock code={companion.code} label={companion.label} /> : null}
+          <p className="mt-2 text-[13px] text-muted">Chỉ thêm tệp mới và <b>một dòng</b> trong layout. Mã trên là App Router; dự án khác dùng thẻ script và một điểm cuối token bằng ngôn ngữ của bạn.</p>
+        </>
+      ) : (
+        <>
+          <CodeBlock code={snippets[lang].code} label={snippets[lang].label} />
+          <p className="mt-2 text-[13px] text-muted">
+            Biến <code className="font-mono">FEEDBACK_HUB_SECRET</code> là khoá ở mục “Khoá ký token” phía trên. Token phải có <code className="font-mono">prj</code>, <code className="font-mono">aud</code>, <code className="font-mono">exp</code>, <code className="font-mono">uid</code>, <code className="font-mono">name</code>.
+          </p>
+        </>
+      )}
     </section>
+  );
+}
+
+type OptsState = Omit<EmbedOpts, "slug" | "hub">;
+
+function EmbedOptions({ o, set, project }: { o: OptsState; set: <K extends keyof OptsState>(k: K, v: OptsState[K]) => void; project: ProjectData }) {
+  const num = (k: "offsetX" | "offsetY") => (e: React.ChangeEvent<HTMLInputElement>) => set(k, Number(e.target.value));
+  return (
+    <Card className="mb-3 mt-3 p-4">
+      <h3 className="text-sm font-semibold">Tuỳ chọn — mã bên dưới đổi theo</h3>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Field label="Cách mở góp ý" hint={o.open === "trigger" ? "Không vẽ nút nổi: mở từ nút/mục menu của ứng dụng. Hợp khi các góc màn hình đã kín." : o.open === "mount" ? "Bảng góp ý hiện ngay trong một vùng của trang." : "Nút nổi ở góc màn hình."}>
+          <Select value={o.open} onChange={(e) => set("open", e.target.value as OptsState["open"])}>
+            <option value="fab">Nút nổi</option>
+            <option value="trigger">Từ nút / mục menu có sẵn</option>
+            <option value="mount">Nhúng vào một vùng của trang</option>
+          </Select>
+        </Field>
+        <Field label="Người gửi" hint={o.auth === "token" ? "Gửi kèm danh tính người đang đăng nhập (cần điểm cuối token)." : project.anonymousSubmit ? "Khách vãng lai gửi ẩn danh." : "Dự án chưa bật “gửi ẩn danh” (tab Chung) nên chế độ này sẽ không hiện widget."}>
+          <Select value={o.auth} onChange={(e) => set("auth", e.target.value as OptsState["auth"])}>
+            <option value="token">Người đã đăng nhập (token)</option>
+            <option value="anonymous">Khách vãng lai (ẩn danh)</option>
+          </Select>
+        </Field>
+        {o.open === "trigger" ? (
+          <Field label="Bộ chọn CSS của nút mở" hint={<>Mặc định <code className="font-mono">{DEFAULT_TRIGGER}</code>: thêm thuộc tính này vào nút bất kỳ. Click được bắt kiểu uỷ quyền nên cả menu hiện ra sau cũng dùng được.</>}>
+            <Input value={o.trigger} onChange={(e) => set("trigger", e.target.value)} />
+          </Field>
+        ) : null}
+        {o.open === "mount" ? (
+          <Field label="Bộ chọn CSS của vùng nhúng">
+            <Input value={o.mount} onChange={(e) => set("mount", e.target.value)} />
+          </Field>
+        ) : null}
+        {o.open === "fab" ? (
+          <>
+            <Field label="Vị trí nút nổi" hint="Để trống = theo tab Giao diện của dự án.">
+              <Select value={o.position} onChange={(e) => set("position", e.target.value as OptsState["position"])}>
+                <option value="">Theo dự án</option>
+                <option value="bottom-right">Dưới-phải</option>
+                <option value="bottom-left">Dưới-trái</option>
+                <option value="top-right">Trên-phải</option>
+                <option value="top-left">Trên-trái</option>
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Cách mép ngang (px)"><Input type="number" min={0} max={200} value={o.offsetX} onChange={num("offsetX")} /></Field>
+              <Field label="Cách mép dọc (px)"><Input type="number" min={0} max={200} value={o.offsetY} onChange={num("offsetY")} /></Field>
+            </div>
+            <Field label="Chữ trên nút" hint="Để trống = theo dự án.">
+              <Input value={o.label} maxLength={30} onChange={(e) => set("label", e.target.value)} />
+            </Field>
+            <Field label="Biểu tượng">
+              <Select value={o.icon} onChange={(e) => set("icon", e.target.value as OptsState["icon"])}>
+                <option value="">Theo dự án</option>
+                <option value="lightbulb">Bóng đèn</option>
+                <option value="chat">Chat</option>
+                <option value="pencil">Bút</option>
+                <option value="flag">Cờ</option>
+                <option value="plus">Dấu cộng</option>
+              </Select>
+            </Field>
+          </>
+        ) : null}
+        <Field label="Ngôn ngữ">
+          <Select value={o.locale} onChange={(e) => set("locale", e.target.value as OptsState["locale"])}>
+            <option value="vi">Tiếng Việt</option>
+            <option value="en">English</option>
+          </Select>
+        </Field>
+        <Field label="Màu nền" hint="Tự theo hệ thống, hoặc cố định nếu ứng dụng của bạn không có chế độ tối.">
+          <Select value={o.colorScheme} onChange={(e) => set("colorScheme", e.target.value as OptsState["colorScheme"])}>
+            <option value="auto">Tự động</option>
+            <option value="light">Luôn sáng</option>
+            <option value="dark">Luôn tối</option>
+          </Select>
+        </Field>
+        <Field label="Che thêm trong ảnh chụp trang" hint={<>Bộ chọn CSS, ví dụ <code className="font-mono">.student-grades, #email</code>. Ô mật khẩu và phần tử có <code className="font-mono">data-feedbackhub-mask</code> luôn bị che.</>}>
+          <Input value={o.mask} placeholder=".ten-lop-css" onChange={(e) => set("mask", e.target.value)} />
+        </Field>
+      </div>
+      <div className="mt-2 border-t border-line pt-1">
+        <Switch checked={o.context} onChange={(v) => set("context", v)} label="Gửi kèm ngữ cảnh nội dung" description="Ứng dụng cho hub biết trang đang hiển thị bản ghi nào (vd. bài học, câu hỏi). Góp ý ghi rõ “về dữ liệu nào” để người/AI tìm đúng chỗ sửa. Mã chuyển sang dạng init() có hàm getContext để bạn điền." />
+      </div>
+    </Card>
   );
 }

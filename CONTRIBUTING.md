@@ -25,6 +25,7 @@ Mở `http://localhost:3100/demo.html` để thử widget.
 ```bash
 npx tsc --noEmit       # kiểu
 npm run lint
+npm run test:embed      # kiểm thử bộ sinh mã nhúng ở tab "Khoá & nhúng" (không cần hub chạy)
 npm run smoke          # kiểm thử đầu-cuối API (hub phải đang chạy ở :3100; hub trong Docker: thêm SMOKE_HOOK_HOST=host.docker.internal)
 node worker/test.mjs   # kiểm thử worker (dùng hub giả, không tốn token)
 node mcp/test.mjs      # kiểm thử MCP

@@ -12,7 +12,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "test:embed": "node scripts/test-embed-snippets.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
