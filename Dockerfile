@@ -21,7 +21,9 @@ RUN npx prisma generate && npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+# Tiền tố đường dẫn phải có cả lúc chạy (next start đọc lại next.config.ts), không chỉ lúc build.
+ARG HUB_BASE_PATH=
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HUB_BASE_PATH=${HUB_BASE_PATH}
 RUN apk add --no-cache libc6-compat openssl \
   && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
