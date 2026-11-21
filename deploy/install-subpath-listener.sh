@@ -33,7 +33,10 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_read_timeout 120;
     }
-    location = $PREFIX { return 301 $PREFIX/; }
+    # Gốc: hub (Next) chuyển "$PREFIX/" về "$PREFIX" còn máy front lại chuyển "$PREFIX" về "$PREFIX/" => vòng lặp.
+    # Nhận cả hai dạng và đưa vào hub ở dạng không có dấu / cuối, để không ai phải chuyển hướng.
+    location = $PREFIX/ { proxy_pass http://127.0.0.1:$HPORT$PREFIX; proxy_http_version 1.1; proxy_set_header Host \$host; proxy_set_header Cookie "hub_session=\$cookie_hub_session"; proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto https; }
+    location = $PREFIX { proxy_pass http://127.0.0.1:$HPORT$PREFIX; proxy_http_version 1.1; proxy_set_header Host \$host; proxy_set_header Cookie "hub_session=\$cookie_hub_session"; proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto https; }
 }
 EOC
 ln -sf "$CONF" "/etc/nginx/sites-enabled/feedbackhub-$LPORT"
