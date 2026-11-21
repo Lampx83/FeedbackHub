@@ -58,6 +58,8 @@ feedback.example.com {
 }
 ```
 
+**Máy dùng chung nhiều site** (nginx đã chạy các vhost khác): `sudo bash deploy/install-vhost.sh feedback.example.com` tạo vhost riêng, xin chứng chỉ Let's Encrypt (webroot, không đụng site khác) và đặt `HUB_PUBLIC_URL`. Một hub phục vụ được nhiều ứng dụng — mỗi ứng dụng là một *dự án* với khoá ký riêng.
+
 **nginx + certbot** — mẫu ở [`deploy/nginx.conf.example`](../deploy/nginx.conf.example). Bắt buộc có `proxy_set_header X-Forwarded-For $remote_addr;` (hub giới hạn tần suất theo địa chỉ IP) và `client_max_body_size 12m;`.
 
 Mở `https://feedback.example.com`, đăng nhập bằng tài khoản quản trị, rồi **đổi mật khẩu** ngay.
