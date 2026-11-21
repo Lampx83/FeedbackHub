@@ -68,10 +68,9 @@ Nên viết một script một lần: đọc bảng cũ → gom lô 50 → gọi
 
 ## Ví dụ DGXL
 
-DGXL chuyển "Yêu cầu cải tiến" và "Hỏi đáp" sang hub bằng cách trên:
+DGXL có hệ thống "Yêu cầu cải tiến" + "Hỏi đáp" riêng (bảng `ImprovementRequest*`, nút nổi, vòng lặp AI-dev). Chuyển theo từng giai đoạn, **giữ nguyên dữ liệu cũ**:
 
-- `FEEDBACK_HUB_URL` + `FEEDBACK_HUB_SECRET` (+ `FEEDBACK_HUB_PROJECT`, `FEEDBACK_HUB_KEY`) bật nhánh chuyển tiếp trong các route cũ; tắt = bảng Prisma cũ.
-- Ánh xạ trường ở một chỗ: `body↔detail`, `reporterId↔submittedByUserId`, `reporterName↔submittedByName`, `kind`+`type` ↔ `type` cũ.
-- Script nhập một lần: đọc `ImprovementRequest*` + tệp đính kèm → `/machine/import`, giữ id, idempotent.
-- Webhook `POST /api/hub/webhook` (kiểm chữ ký HMAC) tạo thông báo cho người gửi.
-- Worker nhận việc từ hub; phần riêng của DGXL (lịch sử phiên bản, khôi phục, đo độ phức tạp) vẫn nằm trong script bao ngoài.
+- **Giai đoạn 1 — Yêu cầu cải tiến (nút nổi của ADMIN).** Trong DGXL: `FEEDBACK_HUB_URL` + `FEEDBACK_HUB_SECRET` bật widget của hub thay nút nổi cũ (tắt = bảng Prisma cũ, quay lại tức thì); `/api/feedback-token` ký token từ phiên đã đối chiếu CSDL. Cấu hình dự án: `docs/feedback-hub.project.json` của DGXL (chế độ `execute`, giao `branch`, loại giới hạn `roles: ["ADMIN"]`).
+- **Nhập dữ liệu cũ:** `scripts/dgxl-export.sql` (chạy trên máy chủ DGXL, chỉ đọc) xuất JSON; `scripts/migrate-from-dgxl.mjs` đổi trường (`detail→body`, `submittedBy*→reporter*`, `add|change→function`, `edit→content`, `qa→question`, vai `ba→user`), giữ nguyên id, chạy lại không nhân đôi, tải kèm tệp đính kèm (`--uploads`). Luôn `--dry-run` trước.
+- **Giai đoạn 2 (chưa làm):** Hỏi đáp (`QaFab`, loại `qa`/`question`) cần giao diện hỏi đáp trong widget và bộ trả lời đọc hàng đợi `?kind=question`; sau đó mới gỡ mã cũ.
+- Worker AI của hub thay `dgxl-autodev-*.sh`; tắt vòng lặp cũ trước khi bật worker mới.
