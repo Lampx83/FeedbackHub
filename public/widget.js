@@ -132,6 +132,7 @@
     plan_btn: "✓ Duyệt kế hoạch",
     reply_ph_wait: "Trả lời để AI làm tiếp…",
     reply_ph: "Nhắn thêm cho AI…",
+    reply_ph_plain: "Nhắn thêm…",
     reply_aria: "Nội dung trả lời",
     reply_send: "Gửi",
     reply_hint: "Trả lời xong góp ý sẽ tự quay lại hàng đợi để AI làm tiếp.",
@@ -246,6 +247,7 @@
     plan_btn: "✓ Approve plan",
     reply_ph_wait: "Reply so the AI can continue…",
     reply_ph: "Send another message…",
+    reply_ph_plain: "Send another message…",
     reply_aria: "Reply text",
     reply_send: "Send",
     reply_hint: "After you reply, the item goes back in the queue so the AI can continue.",
@@ -488,12 +490,13 @@
     ".pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:.8em;font-weight:600;white-space:nowrap;flex-shrink:0}",
     ".pill.pm{background:var(--soft2);color:var(--fg)}",
     ".st-pending{background:var(--s1b);color:var(--s1f)}.st-reviewing{background:var(--s2b);color:var(--s2f)}.st-deploying{background:var(--s3b);color:var(--s3f)}.st-awaiting_user{background:var(--s4b);color:var(--s4f)}.st-done{background:var(--s5b);color:var(--s5f)}.st-rejected{background:var(--s6b);color:var(--s6f)}",
-    ".card-b{border-top:1px solid var(--bd);background:var(--soft);padding:12px;display:flex;flex-direction:column;gap:10px}",
+    ".card-b{border-top:1px solid var(--bd);background:var(--soft);padding:10px 12px;display:flex;flex-direction:column;gap:8px}",
+    ".card-b>:empty{display:none}",
     ".meta{color:var(--muted);font-size:.85em}",
     ".tgt{background:var(--okbg);color:var(--okfg);border-radius:6px;padding:4px 8px;font-size:.88em}",
     ".txt{white-space:pre-wrap;overflow-wrap:anywhere}",
     ".atts{display:flex;flex-wrap:wrap;gap:6px}",
-    ".thumb{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--bd);display:block}",
+    ".thumb{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--bd);display:block}",
     ".thumb:hover{opacity:.85}",
     ".fl{background:var(--soft2);border-radius:6px;padding:2px 8px;font-size:.88em;color:var(--fg);text-decoration:underline}",
     ".tl{list-style:none;margin:0;padding:0 0 0 12px;border-left:2px solid var(--bd);display:flex;flex-direction:column;gap:8px}",
@@ -1301,7 +1304,7 @@
         D.suggest.textContent = sg ? t("suggest_note", { before: String(sg.before || "").slice(0, 120), after: String(sg.after || "").slice(0, 120) }) : "";
         D.body.textContent = item.body || "";
         D.body.hidden = !item.body;
-        D.reply.placeholder = item.status === "awaiting_user" ? t("reply_ph_wait") : t("reply_ph");
+        D.reply.placeholder = item.status === "awaiting_user" ? t("reply_ph_wait") : t(aiHandles() ? "reply_ph" : "reply_ph_plain");
         D.hint.hidden = item.status !== "awaiting_user" || !aiHandles();
       }
       function paintAtts() {
