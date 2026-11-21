@@ -3,6 +3,7 @@
  * Kiểm thử đầu-cuối trên một hub đang chạy: toàn bộ vòng đời của một góp ý, phân quyền, claim nguyên tử,
  * webhook có chữ ký, chế độ thu nhận. Tạo một dự án tạm rồi xoá ở cuối.
  *   HUB=http://localhost:3100 HUB_ADMIN_EMAIL=… HUB_ADMIN_PASSWORD=… npm run smoke
+ * Hub trong Docker: thêm SMOKE_HOOK_HOST=host.docker.internal
  */
 import { createHmac } from "node:crypto";
 import http from "node:http";
@@ -59,8 +60,10 @@ const server = http.createServer((req, res) => {
     res.end("ok");
   });
 });
-await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const hookUrl = `http://127.0.0.1:${server.address().port}/hook`;
+// Hub chạy trong Docker không gọi được 127.0.0.1 của máy bạn: đặt SMOKE_HOOK_HOST=host.docker.internal.
+const hookHost = process.env.SMOKE_HOOK_HOST || "127.0.0.1";
+await new Promise((r) => server.listen(0, process.env.SMOKE_HOOK_HOST ? "0.0.0.0" : "127.0.0.1", r));
+const hookUrl = `http://${hookHost}:${server.address().port}/hook`;
 
 try {
   // ── quản trị: đăng nhập, tạo dự án ─────────────────────────────────────────

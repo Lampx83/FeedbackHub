@@ -1,5 +1,7 @@
 import { authenticateUser, canSubmit, isProjectAdmin } from "@/lib/auth-user";
 import { originAllowed, preflight, withCors } from "@/lib/cors";
+import { hmacHex } from "@/lib/crypto";
+import { authSecret } from "@/lib/env";
 import { createFeedback, findDuplicate, fromUser } from "@/lib/feedback";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
@@ -18,14 +20,16 @@ const createSchema = z.object({
   title: z.string().min(4, "Tiêu đề tối thiểu 4 ký tự").max(200),
   body: z.string().max(20000).optional(),
   /** Chỉ nhận đường dẫn nội bộ để không ai nhét URL ngoài vào ngữ cảnh mà AI sẽ đọc. */
-  pagePath: z.string().max(200).regex(/^\/[\w\-./[\]%~]*$/, "Đường dẫn không hợp lệ").optional(),
+  // Chỉ đường dẫn NỘI BỘ: bắt đầu bằng một dấu "/" (không phải "//" — URL tương đối giao thức), không khoảng trắng/ký tự điều khiển/ngoặc nhọn/dấu nháy.
+  pagePath: z.string().max(200).regex(/^\/(?!\/)[^\s<>"'`\\]*$/u, "Đường dẫn không hợp lệ").optional(),
   pageUrl: z.string().url().max(500).optional(),
   scope: z.enum(["page", "system"]).default("page"),
   pageTarget: z.string().max(500).optional(),
   suggestion: z.object({ before: z.string().max(2000), after: z.string().max(2000) }).optional(),
   contentRef: z.string().max(200).optional(),
   extra: z.record(z.string().max(60), z.unknown()).optional(),
-  source: z.enum(["widget", "board", "api"]).default("api"),
+  /** Đường vào hệ thống — dùng cho phân tích. Tự do (chữ thường) để ứng dụng chủ giữ nhãn riêng, vd. "fab". */
+  source: z.string().regex(/^[a-z0-9_-]{1,20}$/).default("api"),
   successCriteria: z.string().max(300).optional(),
   requirePlan: z.boolean().optional(),
   aiProvider: z.string().regex(/^[a-z0-9_-]{1,20}$/).optional(),
@@ -127,7 +131,8 @@ export async function POST(req: Request) {
 
   const reporter = a.user
     ? fromUser(a.user)
-    : { id: `anon:${clientIp(req)}`, name: v.name?.trim() || "Ẩn danh", email: v.email ?? null, role: null };
+    : { id: `anon:${hmacHex(authSecret(), `${project.id}:${clientIp(req)}`).slice(0, 16)}`, // băm có khoá: không lưu địa chỉ IP thô, vẫn chặn trùng theo người
+       name: v.name?.trim() || "Ẩn danh", email: v.email ?? null, role: null };
 
   if (!v.allowDuplicate && kind !== "question") {
     const dup = await findDuplicate(project.id, reporter.id, v.title, v.body);

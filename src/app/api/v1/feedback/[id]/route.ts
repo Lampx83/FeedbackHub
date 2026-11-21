@@ -100,7 +100,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const planApproved = v.planApproval === "approved";
   const answeredWhileWaiting =
     Boolean(message) && fb.status === "awaiting_user" && (v.status ?? "awaiting_user") === "awaiting_user";
-  const next = reopens || planApproved || answeredWhileWaiting ? "pending" : (v.status ?? null);
+  // Hỏi tiếp trong một cuộc hỏi đáp: luôn đặt lại hàng đợi, không thì bộ trả lời không nhận.
+  const followUpQuestion = Boolean(message) && fb.kind === "question" && fb.status !== "pending" && fb.status !== "reviewing";
+  const next = reopens || planApproved || answeredWhileWaiting || followUpQuestion ? "pending" : (v.status ?? null);
 
   const role = admin && fb.reporterId !== user.uid ? "admin" : "user";
   if (next) {

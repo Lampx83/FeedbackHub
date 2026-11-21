@@ -1,0 +1,9 @@
+# Caddy tự xin và gia hạn chứng chỉ HTTPS (Let's Encrypt). Thay tên miền rồi: caddy run --config Caddyfile
+feedback.example.com {
+	encode zstd gzip
+	# Tệp đính kèm tối đa 10 MB; để dư cho phần mã hoá multipart.
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy 127.0.0.1:3100
+}

@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 /**
  * Liệt kê góp ý (cho Claude/MCP/CLI ở chế độ thu nhận). Operator không kèm ?project= thì xem
- * mọi dự án. Lọc: status, kind, contentRef, q (tìm trong tiêu đề), limit (≤ 200).
+ * mọi dự án. Lọc: status, kind, source, contentRef, ids (cách nhau dấu phẩy), q (tìm trong tiêu đề); phân trang: limit (≤ 200), offset, order (asc|desc).
  */
 export async function GET(req: Request) {
   const auth = await authenticateMachine(req);
@@ -19,17 +19,24 @@ export async function GET(req: Request) {
   const status = u.get("status");
   const kind = u.get("kind");
   const contentRef = u.get("contentRef");
+  const source = u.get("source");
   const q = u.get("q");
   const limit = Math.min(200, Math.max(1, Number(u.get("limit")) || 50));
+  const offset = Math.max(0, Number(u.get("offset")) || 0);
+  const ids = u.get("ids")?.split(",").filter(Boolean).slice(0, 200);
+  const order = u.get("order") === "desc" ? "desc" : "asc";
   const items = await prisma.feedback.findMany({
     where: {
       ...(auth.project ? { projectId: auth.project.id } : {}),
+      ...(ids ? { id: { in: ids } } : {}),
       ...(status ? { status: { in: status.split(",") } } : {}),
       ...(kind ? { kind: { in: kind.split(",") } } : {}),
       ...(contentRef ? { contentRef } : {}),
+      ...(source ? { source: { in: source.split(",") } } : {}),
       ...(q ? { title: { contains: q, mode: "insensitive" as const } } : {}),
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: order },
+    skip: offset,
     take: limit,
     include: { project: { select: { slug: true } }, attachments: { select: { id: true, fileName: true, mimeType: true } } },
   });

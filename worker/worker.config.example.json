@@ -1,0 +1,43 @@
+{
+  "hub": "https://hub.example.edu.vn",
+  "project": "ung-dung-cua-toi",
+  "repo": "~/apps/ung-dung-cua-toi-git",
+  "baseBranch": "main",
+
+  "maxDeliver": "branch",
+
+  "build": "npm run build",
+  "buildTimeoutSec": 1800,
+
+  "deploy": "./deploy/deploy.sh",
+  "deployTimeoutSec": 1800,
+  "healthUrl": "http://127.0.0.1:3030/login",
+  "healthTries": 30,
+  "healthIntervalSec": 4,
+  "backup": "./deploy/backup-db.sh",
+
+  "verify": { "mode": "grep-build", "dir": ".next" },
+
+  "agent": {
+    "cmd": "claude",
+    "timeoutSec": 2400,
+    "budgetUsd": 10,
+    "envFile": "~/.hub-worker.env",
+    "requireAnyEnv": ["CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"]
+  },
+  "allowedModels": ["claude-opus-5-5", "claude-sonnet-5"],
+  "providers": { "glm": "~/.hub-worker-glm.env" },
+
+  "allowedPaths": ["src/", "prisma/", "scripts/", "docs/", "public/", "package.json", "package-lock.json", "CLAUDE.md", "AGENTS.md"],
+  "protectedPaths": ["deploy/.env.prod"],
+
+  "boundaries": [
+    "Không đụng xác thực/SSO, phân quyền lõi, chữ ký số.",
+    "Không đổi công thức tính điểm/xếp loại đã ban hành; không xoá dữ liệu đánh giá."
+  ],
+
+  "pathPrepend": ["~/.npm-global/bin", "~/.local/bin", "/usr/local/bin"],
+  "lockDir": "~/.feedback-hub-worker",
+  "logDir": "~/.feedback-hub-worker/logs",
+  "keyFile": "~/.feedback-hub-worker/key"
+}

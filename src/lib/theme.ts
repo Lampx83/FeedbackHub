@@ -62,8 +62,8 @@ function luminance(hex: string): number | null {
 export function contrastWarnings(t: Theme): string[] {
   const out: string[] = [];
   const pairs: [string, string | undefined, string | undefined][] = [
-    ["chữ trên nút (primaryText) và màu nút (primary)", t.primaryText, t.primary],
-    ["chữ (fg) và nền (bg)", t.fg, t.bg],
+    ["chữ trên nút và màu nút", t.primaryText, t.primary],
+    ["chữ và nền", t.fg, t.bg],
   ];
   for (const [name, a, b] of pairs) {
     if (!a || !b) continue;

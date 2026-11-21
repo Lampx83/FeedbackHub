@@ -30,7 +30,7 @@ model Project {
   /// giữ bản gốc để ký; hub cần bản gốc để kiểm chữ ký nên không thể chỉ lưu băm.
   signingSecretEnc String
 
-  /// Tên miền được phép gọi API từ trình duyệt (vd. https://dgxl.neu.edu.vn). Rỗng = chỉ
+  /// Tên miền được phép gọi API từ trình duyệt (vd. https://app.example.com). Rỗng = chỉ
   /// gọi từ máy chủ (không có CORS).
   allowedOrigins String[]
   /// Vai trò được GỬI góp ý. Rỗng = mọi người có token hợp lệ.

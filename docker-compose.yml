@@ -1,0 +1,39 @@
+# Feedback Hub — triển khai một lệnh: `cp .env.example .env && (sửa .env) && docker compose up -d --build`
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: feedbackhub
+    volumes:
+      - hub-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hub -d feedbackhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://hub:${POSTGRES_PASSWORD}@db:5432/feedbackhub
+      AUTH_SECRET: ${AUTH_SECRET:?Đặt AUTH_SECRET trong .env}
+      HUB_ENCRYPTION_KEY: ${HUB_ENCRYPTION_KEY:?Đặt HUB_ENCRYPTION_KEY trong .env}
+      HUB_ADMIN_EMAIL: ${HUB_ADMIN_EMAIL:-}
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+      HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
+    volumes:
+      - hub-data:/app/data
+    # Chỉ mở cổng ra localhost: đặt Caddy/nginx phía trước để có HTTPS (xem docs/DEPLOY.md).
+    ports:
+      - "127.0.0.1:${HUB_PORT:-3100}:3000"
+
+volumes:
+  hub-db:
+  hub-data:

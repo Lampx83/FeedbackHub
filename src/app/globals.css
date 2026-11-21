@@ -1,1 +1,67 @@
 @import "tailwindcss";
+
+/* Sáng/tối theo thiết bị (prefers-color-scheme). Màu dùng chung đi qua biến để lớp tiện ích gọn. */
+:root {
+  color-scheme: light dark;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --line: #dde1e8;
+  --fg: #14171c;
+  --muted: #566070;
+  --brand: #2a55e0;
+  --brand-fg: #ffffff;
+  --danger: #c0262d;
+  --ring: rgba(42, 85, 224, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1013;
+    --surface: #171a20;
+    --surface-2: #20242c;
+    --line: #2d333d;
+    --fg: #e9ecf1;
+    --muted: #9ba5b4;
+    --brand: #7b97ff;
+    --brand-fg: #0a1026;
+    --danger: #ff7a7f;
+    --ring: rgba(123, 151, 255, 0.55);
+  }
+}
+
+@theme inline {
+  --color-page: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-danger: var(--danger);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Cuộn ngang gọn cho thanh tab trên điện thoại. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}

@@ -1,11 +1,13 @@
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-export const metadata = { title: "Feedback Hub" };
+export const metadata: Metadata = { title: "Feedback Hub — Bảng điều khiển" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body className="min-h-dvh">{children}</body>
     </html>
   );
 }

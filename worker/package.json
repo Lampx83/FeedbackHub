@@ -1,0 +1,9 @@
+{
+  "name": "feedback-hub-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Worker chung chạy chế độ làm ngay (execute) cho Feedback Hub — không phụ thuộc gói ngoài",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node hub-worker.mjs", "test": "node test.mjs" }
+}

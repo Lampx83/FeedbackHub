@@ -1,4 +1,4 @@
-import { fail, json } from "@/lib/http";
+import { json } from "@/lib/http";
 import { machineProject } from "@/lib/machine-guard";
 import { prisma } from "@/lib/prisma";
 import { projectFeatures } from "@/lib/project-config";

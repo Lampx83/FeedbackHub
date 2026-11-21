@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Demo widget Feedback Hub</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font: 16px/1.6 Georgia, "Times New Roman", serif; background: #fafaf9; color: #292524; }
+    html.dark body, html[data-theme="dark"] body { background: #18181b; color: #e4e4e7; }
+    main { max-width: 52rem; margin: 0 auto; padding: 24px 16px 120px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    h2 { font-size: 1.2rem; margin-top: 2rem; }
+    .panel { border: 1px solid #a8a29e; border-radius: 10px; padding: 12px 16px; margin: 16px 0; font: 14px/1.5 system-ui, sans-serif; }
+    .panel label { display: inline-flex; flex-direction: column; gap: 2px; margin: 4px 12px 4px 0; font-size: 12px; }
+    .panel input, .panel select, .panel textarea { font: inherit; padding: 4px 6px; }
+    .panel textarea { width: 100%; box-sizing: border-box; font-family: ui-monospace, monospace; font-size: 11px; }
+    .panel button { font: inherit; padding: 4px 10px; cursor: pointer; margin: 2px; }
+    #log { font: 12px/1.4 ui-monospace, monospace; max-height: 7rem; overflow: auto; white-space: pre-wrap; }
+    .card { border: 1px solid #d6d3d1; border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
+    #host-fab { position: fixed; left: 16px; bottom: 16px; padding: 8px 14px; border-radius: 999px; border: 0; background: #7c3aed; color: #fff; cursor: pointer; font: 14px system-ui; }
+    #host-fab[hidden] { display: none; }
+    #inline-mount { margin-top: 12px; }
+    /* Thử biến CSS của trang chủ xuyên Shadow DOM: bỏ chú thích để đổi màu nút. */
+    /* :root { --fh-primary: #b45309; --fh-radius: 4px; } */
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="page-title">Trang giả lập ứng dụng chủ</h1>
+    <p>Đây là trang thử cho <code>widget.js</code>. Hãy bôi đen một đoạn chữ rồi bấm nút 💡 để thử "Sửa chữ này".</p>
+
+    <div class="panel" id="controls" data-testid="controls">
+      <div>
+        <label>Dự án (slug)<input id="c-project" value="demo" size="10"></label>
+        <label>Vị trí
+          <select id="c-pos"><option value="">(theo hub)</option><option>bottom-right</option><option>bottom-left</option><option>top-right</option><option>top-left</option></select>
+        </label>
+        <label>Giao diện
+          <select id="c-scheme"><option value="">(theo hub)</option><option>auto</option><option>light</option><option>dark</option></select>
+        </label>
+        <label>Ngôn ngữ <select id="c-locale"><option value="">(theo hub)</option><option>vi</option><option>en</option></select></label>
+        <label>Chế độ
+          <select id="c-mode"><option value="drawer">ngăn kéo + nút nổi</option><option value="trigger">chỉ nút có sẵn (data-trigger)</option><option value="mount">nhúng trong trang (data-mount)</option></select>
+        </label>
+        <label>Cách khởi tạo
+          <select id="c-how"><option value="init">FeedbackHub.init()</option><option value="data">thẻ script data-*</option></select>
+        </label>
+      </div>
+      <label style="display:flex">Token người dùng (dán vào, lưu sessionStorage; để trống = ẩn danh/không có token)
+        <textarea id="c-token" rows="2"></textarea>
+      </label>
+      <div>
+        <button id="b-init">Khởi tạo lại</button>
+        <button id="b-open">open()</button>
+        <button id="b-close">close()</button>
+        <button id="b-refresh">refresh()</button>
+        <button id="b-dark">Bật/tắt class dark trên &lt;html&gt;</button>
+        <button id="b-hidefab">hideFab()</button>
+        <button id="my-trigger" type="button">🗨️ Nút có sẵn của ứng dụng</button>
+      </div>
+      <div id="log" aria-live="polite"></div>
+    </div>
+
+    <h2>Nội dung mẫu</h2>
+    <p id="intro">Đáp án đúng là Hà Nội, không phải Huế. Đoạn này dùng để thử bôi đen và đề xuất sửa chữ tại chỗ.</p>
+    <div class="card"><strong>Thẻ thứ nhất</strong> — Điểm tổng kết: 85/100.</div>
+    <div class="card"><strong>Thẻ thứ hai</strong> — Điểm tổng kết: 72/100.</div>
+    <div class="card"><strong>Thẻ thứ ba</strong> — Điểm tổng kết: 91/100.</div>
+    <ul><li>Mục một</li><li>Mục hai</li><li>Mục ba</li></ul>
+    <h2>Vùng nhúng (data-mount)</h2>
+    <div id="inline-mount"></div>
+  </main>
+  <button id="host-fab" hidden>Nút khác của ứng dụng</button>
+
+  <script>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var log = function (m) { var l = $("log"); l.textContent += new Date().toLocaleTimeString() + " " + m + "\n"; l.scrollTop = l.scrollHeight; };
+    var q = new URLSearchParams(location.search);
+    function save(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+    function load(k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } }
+    $("c-token").value = load("fh-token");
+    $("c-project").value = q.get("project") || load("fh-project") || "demo";
+    ["pos", "scheme", "locale", "mode", "how"].forEach(function (k) { var v = q.get(k) || load("fh-" + k); if (v) $("c-" + k).value = v; });
+    $("c-token").addEventListener("input", function () { save("fh-token", $("c-token").value.trim()); });
+
+    window.addEventListener("feedbackhub:state", function (e) { log("feedbackhub:state open=" + e.detail.open); $("host-fab").hidden = !e.detail.open ? true : false; });
+
+    function loadScript(attrs) {
+      var old = document.getElementById("fh-script");
+      if (old) old.remove();
+      var s = document.createElement("script");
+      s.id = "fh-script";
+      s.src = "/widget.js?" + Date.now();
+      Object.keys(attrs || {}).forEach(function (k) { s.setAttribute(k, attrs[k]); });
+      return new Promise(function (res) { s.onload = res; document.head.appendChild(s); });
+    }
+
+    async function boot() {
+      ["project", "pos", "scheme", "locale", "mode", "how"].forEach(function (k) { save("fh-" + k, $("c-" + k).value); });
+      if (window.FeedbackHub) window.FeedbackHub.destroy();
+      // Nạp lại script mỗi lần để thử cả hai đường khởi tạo từ đầu.
+      delete window.FeedbackHub;
+      var mode = $("c-mode").value, how = $("c-how").value;
+      var common = { position: $("c-pos").value, "color-scheme": $("c-scheme").value, locale: $("c-locale").value };
+      if (how === "data") {
+        // Đường 1: thẻ script data-*. Token lấy qua data-token-url (trang này giả lập bằng một URL blob).
+        var tokenUrl = URL.createObjectURL(new Blob([JSON.stringify({ token: $("c-token").value.trim() })], { type: "application/json" }));
+        var a = { "data-project": $("c-project").value.trim() };
+        if (common.position) a["data-position"] = common.position;
+        if (common["color-scheme"]) a["data-color-scheme"] = common["color-scheme"];
+        if (common.locale) a["data-locale"] = common.locale;
+        if ($("c-token").value.trim()) a["data-token-url"] = tokenUrl;
+        if (mode === "trigger") { a["data-trigger"] = "#my-trigger"; a["data-fab"] = "false"; }
+        if (mode === "mount") a["data-mount"] = "#inline-mount";
+        await loadScript(a);
+        log("script data-* đã nạp");
+        return;
+      }
+      // Đường 2: init() với getToken (đọc sessionStorage mỗi lần gọi).
+      await loadScript({});
+      var o = {
+        project: $("c-project").value.trim(),
+        position: common.position || undefined, colorScheme: common["color-scheme"] || undefined, locale: common.locale || undefined,
+        getToken: $("c-token").value.trim() ? async function () { return load("fh-token"); } : undefined,
+        onState: function (s) { log("onState " + JSON.stringify(s)); },
+      };
+      if (mode === "trigger") { o.trigger = "#my-trigger"; o.fab = false; }
+      if (mode === "mount") o.mount = "#inline-mount";
+      var inst = await window.FeedbackHub.init(o);
+      log(inst ? "init xong" : "init không dựng được widget (xem console.warn)");
+    }
+
+    $("b-init").onclick = boot;
+    $("b-open").onclick = function () { window.FeedbackHub && window.FeedbackHub.open(); };
+    $("b-close").onclick = function () { window.FeedbackHub && window.FeedbackHub.close(); };
+    $("b-refresh").onclick = function () { window.FeedbackHub && window.FeedbackHub.refresh(); };
+    var hidden = false;
+    $("b-hidefab").onclick = function () { hidden = !hidden; window.FeedbackHub && window.FeedbackHub.hideFab(hidden); };
+    $("b-dark").onclick = function () { document.documentElement.classList.toggle("dark"); };
+    $("my-trigger").addEventListener("click", function () { log("nút của ứng dụng được bấm"); });
+    boot();
+  })();
+  </script>
+</body>
+</html>
