@@ -13,6 +13,7 @@ type Item = {
   body: string | null;
   kind: string;
   status: string;
+  approvedAt: string | null;
   reporterName: string;
   reporterRole: string | null;
   createdAt: string;
@@ -20,7 +21,7 @@ type Item = {
   _count: { messages: number; attachments: number };
 };
 
-export type Filters = { project: string; status: string; kind: string; q: string; id: string };
+export type Filters = { project: string; status: string; kind: string; q: string; id: string; approval?: string };
 
 const OPEN_VALUE = OPEN_STATUSES.join(",");
 
@@ -28,6 +29,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
   const [project, setProject] = useState(initial.project);
   const [status, setStatus] = useState(initial.status);
   const [kind, setKind] = useState(initial.kind);
+  const [approval, setApproval] = useState(initial.approval ?? "");
   const [q, setQ] = useState(initial.q);
   const [dq, setDq] = useState(initial.q);
   const [openId, setOpenId] = useState(initial.id);
@@ -48,11 +50,12 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
     if (project) u.set("project", project);
     if (status) u.set("status", status);
     if (kind) u.set("kind", kind);
+    if (approval) u.set("approval", approval);
     if (dq) u.set("q", dq);
     if (openId) u.set("id", openId);
     const s = u.toString();
     window.history.replaceState(null, "", s ? `/board?${s}` : "/board");
-  }, [project, status, kind, dq, openId]);
+  }, [project, status, kind, approval, dq, openId]);
 
   // Tải danh sách; làm mới 15 giây một lần khi tab đang hiện.
   useEffect(() => {
@@ -61,6 +64,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
     if (project) u.set("project", project);
     if (status) u.set("status", status);
     if (kind) u.set("kind", kind);
+    if (approval) u.set("approval", approval);
     if (dq) u.set("q", dq);
     const url = `/api/admin/feedback?${u.toString()}`;
     async function run() {
@@ -86,7 +90,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [project, status, kind, dq]);
+  }, [project, status, kind, approval, dq]);
 
   const statusOptions = useMemo(() => {
     const openCount = OPEN_STATUSES.reduce((n, s) => n + (stats[s] ?? 0), 0);
@@ -130,6 +134,11 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
                 </option>
               ))}
             </Select>
+            <Select aria-label="Lọc theo duyệt" value={approval} onChange={(e) => setApproval(e.target.value)} className="w-auto max-w-full">
+              <option value="">Duyệt: tất cả</option>
+              <option value="pending">Chưa duyệt</option>
+              <option value="approved">Đã duyệt</option>
+            </Select>
           </>
         }
       />
@@ -149,6 +158,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
                   <span className="flex shrink-0 items-center gap-1.5">
                     <KindBadge kind={it.kind} />
                     <StatusBadge status={it.status} />
+                    {it.approvedAt ? <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-400/15 dark:text-emerald-300">Đã duyệt</span> : null}
                   </span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px] text-muted" suppressHydrationWarning>

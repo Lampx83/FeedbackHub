@@ -2,6 +2,7 @@ import { json } from "@/lib/http";
 import { machineProject } from "@/lib/machine-guard";
 import { prisma } from "@/lib/prisma";
 import { projectFeatures } from "@/lib/project-config";
+import { requiresApproval } from "@/lib/approval";
 
 export const runtime = "nodejs";
 
@@ -28,9 +29,11 @@ export async function GET(req: Request) {
   };
   const idle = !questions && auth.scope === "worker" && project.mode !== "execute";
 
+  // Cổng duyệt: khoá không phải operator chỉ thấy góp ý đã duyệt (câu hỏi Hỏi đáp không qua cổng này).
+  const gate = !questions && auth.scope !== "operator" && requiresApproval(project) ? { approvedAt: { not: null } } : {};
   const where = questions
     ? { projectId: project.id, kind: "question", status: "pending" }
-    : { projectId: project.id, kind: { not: "question" }, status: { in: ["pending", "reviewing"] } };
+    : { projectId: project.id, kind: { not: "question" }, status: { in: ["pending", "reviewing"] }, ...gate };
   const items = idle
     ? []
     : await prisma.feedback.findMany({
@@ -43,7 +46,7 @@ export async function GET(req: Request) {
     ? []
     : (
         await prisma.feedback.findMany({
-          where: { projectId: project.id, stopRequestedAt: { not: null }, status: { in: ["pending", "reviewing"] } },
+          where: { projectId: project.id, stopRequestedAt: { not: null }, status: { in: ["pending", "reviewing"] }, ...gate },
           select: { id: true },
         })
       ).map((r) => r.id);

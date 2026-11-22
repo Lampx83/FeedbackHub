@@ -3,6 +3,7 @@ import { json, readBody } from "@/lib/http";
 import { machineProject } from "@/lib/machine-guard";
 import { authenticateMachine } from "@/lib/auth-machine";
 import { prisma } from "@/lib/prisma";
+import { requiresApproval } from "@/lib/approval";
 import { KINDS, STATUSES } from "@/lib/status";
 import { z } from "zod";
 
@@ -10,7 +11,7 @@ export const runtime = "nodejs";
 
 /**
  * Liệt kê góp ý (cho Claude/MCP/CLI ở chế độ thu nhận). Operator không kèm ?project= thì xem
- * mọi dự án. Lọc: status, kind, source, contentRef, ids (cách nhau dấu phẩy), q (tìm trong tiêu đề); phân trang: limit (≤ 200), offset, order (asc|desc).
+ * mọi dự án. Lọc: status, kind, source, contentRef, approved (1|0), ids (cách nhau dấu phẩy), q (tìm trong tiêu đề); phân trang: limit (≤ 200), offset, order (asc|desc).
  */
 export async function GET(req: Request) {
   const auth = await authenticateMachine(req);
@@ -25,8 +26,13 @@ export async function GET(req: Request) {
   const offset = Math.max(0, Number(u.get("offset")) || 0);
   const ids = u.get("ids")?.split(",").filter(Boolean).slice(0, 200);
   const order = u.get("order") === "desc" ? "desc" : "asc";
+  // Cổng duyệt: khoá worker/reader chỉ thấy góp ý đã duyệt ở dự án bật requireApproval. Operator lọc tuỳ ý bằng ?approved=1|0.
+  const approved = u.get("approved");
+  const gated = auth.scope !== "operator" && auth.project && requiresApproval(auth.project);
+  const approvalWhere = gated || approved === "1" ? { approvedAt: { not: null } } : approved === "0" ? { approvedAt: null } : {};
   const items = await prisma.feedback.findMany({
     where: {
+      ...approvalWhere,
       ...(auth.project ? { projectId: auth.project.id } : {}),
       ...(ids ? { id: { in: ids } } : {}),
       ...(status ? { status: { in: status.split(",") } } : {}),

@@ -365,6 +365,32 @@ try {
   ok((await call("DELETE", `/api/admin/users/${meSuper.selfId}`, { cookie })).status === 400, "không tự xoá chính mình");
   ok((await call("PATCH", `/api/admin/users/${meSuper.selfId}`, { cookie, body: { password: "Smoke-own-pw-1234" } })).status === 400, "không đặt lại mật khẩu của chính mình qua trang quản lý");
 
+  // ── cổng duyệt: khi bật, AI (reader/worker) chỉ thấy góp ý đã được con người duyệt ──
+  const OPK = op.data.key;
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { requireApproval: true } } })).status === 200, "bật cổng duyệt cho dự án");
+  const rList0 = await call("GET", "/api/v1/machine/feedback", { key: R });
+  ok(rList0.status === 200 && rList0.data.items.length === 0, "cổng duyệt: khoá chỉ đọc không thấy góp ý chưa duyệt (danh sách)", JSON.stringify(rList0.data).slice(0, 120));
+  ok((await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 403, "cổng duyệt: khoá chỉ đọc không mở được góp ý chưa duyệt theo mã (403)");
+  ok((await call("GET", "/api/v1/machine/queue", { key: R })).data.items.length === 0, "cổng duyệt: hàng đợi không có góp ý chưa duyệt");
+  const W2 = (await call("POST", `/api/admin/projects/${slug}/keys`, { cookie, body: { label: "worker-smoke-2" } })).data.key;
+  const wClaim = await call("POST", `/api/v1/machine/feedback/${rid}/claim`, { key: W2 });
+  ok(wClaim.status === 403, "cổng duyệt: worker không nhận được góp ý chưa duyệt (403)", `${wClaim.status} ${JSON.stringify(wClaim.data)}`);
+  const opList = await call("GET", `/api/v1/machine/feedback?project=${slug}&approved=0`, { key: OPK });
+  ok(opList.status === 200 && opList.data.items.some((i) => i.id === rid), "operator vẫn thấy góp ý chưa duyệt (lọc approved=0)");
+  ok((await call("GET", `/api/v1/machine/feedback/${rid}`, { key: OPK })).status === 200, "operator mở được góp ý chưa duyệt");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie: V.cookie, body: { approved: true } })).status === 403, "người chỉ xem không duyệt được (403)");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie: O.cookie, body: { approved: true } })).status === 404, "quản trị dự án khác không duyệt được góp ý này (404)");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie, body: { approved: true } })).status === 200, "quản trị duyệt góp ý");
+  const apprDetail = await call("GET", `/api/admin/feedback/${rid}`, { cookie });
+  ok(!!apprDetail.data.feedback.approvedAt && apprDetail.data.feedback.events.some((e) => e.kind === "approval" && e.detail?.approved === true), "duyệt được ghi vào nhật ký sự kiện");
+  const rList1 = await call("GET", "/api/v1/machine/feedback", { key: R });
+  ok(rList1.data.items.length === 1 && rList1.data.items[0].id === rid, "sau khi duyệt: khoá chỉ đọc thấy đúng góp ý đã duyệt");
+  ok((await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 200, "sau khi duyệt: mở được theo mã");
+  ok((await call("GET", `/api/admin/feedback?project=${slug}&approval=approved`, { cookie })).data.items.every((i) => i.id === rid), "bảng quản trị lọc đã duyệt");
+  ok((await call("GET", `/api/admin/feedback?project=${slug}&approval=pending`, { cookie })).data.items.every((i) => i.id !== rid), "bảng quản trị lọc chưa duyệt không có góp ý đã duyệt");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie, body: { approved: false } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 403, "bỏ duyệt thì AI lại không thấy");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { requireApproval: false } } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 200, "tắt cổng duyệt thì hành vi trở lại như cũ");
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);

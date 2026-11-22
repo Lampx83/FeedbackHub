@@ -27,6 +27,11 @@ export type Features = {
    * So với `location.pathname` của ứng dụng chủ (gồm cả tiền tố đường dẫn nếu ứng dụng chạy dưới đường dẫn con).
    */
   hidePaths: string[];
+  /**
+   * Cổng duyệt: khoá worker/reader (AI) chỉ thấy và nhận góp ý ĐÃ ĐƯỢC quản trị dự án duyệt. Góp ý chưa duyệt (có thể chứa
+   * lời chèn lệnh) không bao giờ tới AI. Khoá operator vẫn thấy tất cả.
+   */
+  requireApproval: boolean;
 };
 
 export const DEFAULT_FEATURES: Features = {
@@ -42,6 +47,7 @@ export const DEFAULT_FEATURES: Features = {
   selectionScope: "",
   selectionRoles: [],
   hidePaths: [],
+  requireApproval: false,
 };
 
 export function projectTypes(p: Pick<Project, "types">): TypeDef[] {

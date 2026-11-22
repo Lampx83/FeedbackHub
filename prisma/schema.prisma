@@ -173,6 +173,9 @@ model Feedback {
   aiProvider      String?
   aiModel         String?
   stopRequestedAt DateTime?
+  /// Duyệt của quản trị dự án (con người). Khi dự án bật requireApproval, khoá worker/reader chỉ thấy góp ý đã duyệt.
+  approvedAt DateTime?
+  approvedBy String?
   /// Ai đang giữ việc (worker nhận bằng claim) và từ lúc nào.
   claimedBy       String?
   claimedAt       DateTime?

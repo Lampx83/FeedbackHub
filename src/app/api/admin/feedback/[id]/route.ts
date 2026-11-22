@@ -25,8 +25,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 const schema = z
-  .object({ status: z.enum(HUMAN_SETTABLE).optional(), message: z.string().max(20000).optional() })
-  .refine((v) => v.status || v.message?.trim(), { message: "Cần trạng thái mới hoặc lời nhắn" });
+  .object({ status: z.enum(HUMAN_SETTABLE).optional(), message: z.string().max(20000).optional(), approved: z.boolean().optional() })
+  .refine((v) => v.status || v.message?.trim() || v.approved !== undefined, { message: "Cần trạng thái mới, lời nhắn hoặc duyệt/bỏ duyệt" });
 
 /** Quản trị hub trả lời / đổi trạng thái. Trả lời lúc "chờ người gửi" thì về hàng đợi như ở API người dùng. */
 export async function PATCH(req: Request, { params }: Ctx) {
@@ -37,6 +37,17 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const a = await requireProjectIdApi(fb.projectId, "manage", "Không tìm thấy góp ý");
   if (!a.ok) return a.response;
   const { project, ...feedback } = fb;
+  // Duyệt / bỏ duyệt: quyết định của con người (máy không có đường nào đặt được). Ghi vào nhật ký để truy vết.
+  if (body.value.approved !== undefined && body.value.approved !== Boolean(fb.approvedAt)) {
+    await prisma.feedback.update({
+      where: { id: fb.id },
+      data: {
+        approvedAt: body.value.approved ? new Date() : null,
+        approvedBy: body.value.approved ? a.admin.name : null,
+        events: { create: { kind: "approval", actor: "human", detail: { approved: body.value.approved, by: a.admin.name } } },
+      },
+    });
+  }
   const message = body.value.message?.trim();
   const requeue = Boolean(message) && fb.status === "awaiting_user" && !body.value.status;
   const to = requeue ? "pending" : body.value.status;

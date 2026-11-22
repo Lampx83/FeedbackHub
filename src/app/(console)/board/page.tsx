@@ -13,5 +13,5 @@ export default async function BoardPage({ searchParams }: { searchParams: SP }) 
   const sp = await searchParams;
   const scope = await projectScope(admin);
   const projects = await prisma.project.findMany({ where: projectFilter(scope), orderBy: { name: "asc" }, select: { slug: true, name: true } });
-  return <Board projects={projects} initial={{ project: one(sp.project), status: one(sp.status), kind: one(sp.kind), q: one(sp.q), id: one(sp.id) }} />;
+  return <Board projects={projects} initial={{ project: one(sp.project), status: one(sp.status), kind: one(sp.kind), q: one(sp.q), id: one(sp.id), approval: one(sp.approval) }} />;
 }

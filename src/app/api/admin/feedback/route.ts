@@ -17,6 +17,7 @@ export async function GET(req: Request) {
     project: projectWhere,
     ...(u.get("status") ? { status: { in: u.get("status")!.split(",") } } : {}),
     ...(u.get("kind") ? { kind: { in: u.get("kind")!.split(",") } } : {}),
+    ...(u.get("approval") === "approved" ? { approvedAt: { not: null } } : u.get("approval") === "pending" ? { approvedAt: null } : {}),
     ...(u.get("q") ? { OR: [{ title: { contains: u.get("q")!, mode: "insensitive" as const } }, { body: { contains: u.get("q")!, mode: "insensitive" as const } }] } : {}),
   };
   const [items, grouped] = await Promise.all([

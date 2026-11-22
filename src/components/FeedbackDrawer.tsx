@@ -39,6 +39,8 @@ export type Detail = {
   rolledBack: boolean;
   verifyResult: string | null;
   userVerdict: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
   successCriteria: string | null;
   planApproval: string | null;
   aiModel: string | null;
@@ -90,6 +92,10 @@ function eventText(e: FbEvent): string {
     const t = e.toStatus && e.toStatus in STATUS_LABEL ? STATUS_LABEL[e.toStatus as Status] : e.toStatus;
     return `Đổi trạng thái: ${f ?? "—"} → ${t ?? "—"}`;
   }
+  if (e.kind === "approval") {
+    const d = e.detail as { approved?: boolean; by?: string } | null;
+    return d?.approved ? `Đã duyệt${d.by ? ` bởi ${d.by}` : ""} — AI được phép xử lý` : "Bỏ duyệt";
+  }
   if (e.kind === "webhook_fail") return "Gửi webhook cho ứng dụng thất bại";
   return e.kind;
 }
@@ -106,6 +112,16 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
   const [actionError, setActionError] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const timeline = useRef<HTMLDivElement>(null);
+
+  async function setApproved(approved: boolean) {
+    setBusy(true);
+    setActionError(null);
+    const r = await api(`/api/admin/feedback/${id}`, { method: "PATCH", body: { approved } });
+    setBusy(false);
+    if (!r.ok) return setActionError(r.error);
+    await load();
+    onChanged();
+  }
 
   async function send(status: Status | null, message: string): Promise<string | void> {
     setBusy(true);
@@ -156,6 +172,7 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <StatusBadge status={fb.status} />
                 <KindBadge kind={fb.kind} />
+                {fb.approvedAt ? <Badge className="bg-emerald-100 text-emerald-900 dark:bg-emerald-400/15 dark:text-emerald-300">Đã duyệt</Badge> : null}
                 {fb.type ? <Badge className="bg-surface-2 text-muted ring-1 ring-inset ring-line">{fb.type}</Badge> : null}
               </div>
             ) : null}
@@ -335,6 +352,14 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
           <div className="space-y-2.5 border-t border-line bg-surface px-5 py-3">
             {actionError ? <Alert tone="error">{actionError}</Alert> : null}
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Trả lời người gửi (hiện trong luồng trao đổi và gửi webhook cho ứng dụng)…" rows={2} aria-label="Trả lời người gửi" className="min-h-16 resize-y" />
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2/50 px-3 py-2">
+              <span className="min-w-0 flex-1 basis-56 text-[13px] leading-snug text-muted">
+                {fb.approvedAt ? <>Đã duyệt{fb.approvedBy ? ` bởi ${fb.approvedBy}` : ""} ({formatDateTime(fb.approvedAt)}): AI của dự án được phép đọc và xử lý góp ý này.</> : "Chưa duyệt. Nếu dự án bật “cần duyệt”, AI chưa thấy góp ý này — hãy đọc kỹ rồi duyệt."}
+              </span>
+              <Button size="sm" variant={fb.approvedAt ? "secondary" : "primary"} disabled={busy} onClick={() => void setApproved(!fb.approvedAt)}>
+                {fb.approvedAt ? "Bỏ duyệt" : "Duyệt để AI xử lý"}
+              </Button>
+            </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <Button size="sm" onClick={() => void send(null, reply)} disabled={busy || !reply.trim()}>
                 {busy ? <Spinner /> : null}

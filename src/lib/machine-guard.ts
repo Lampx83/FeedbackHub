@@ -1,5 +1,6 @@
 import type { Feedback, Project } from "@prisma/client";
 import { authenticateMachine, type MachineAuth } from "./auth-machine";
+import { blockedUntilApproved } from "./approval";
 import { fail } from "./http";
 import { prisma } from "./prisma";
 
@@ -31,6 +32,8 @@ export async function machineFeedback(
   }
   const project = auth.project?.id === fb.projectId ? auth.project : await prisma.project.findUnique({ where: { id: fb.projectId } });
   if (!project) return { ok: false, response: fail(404, "Dự án không còn tồn tại") };
+  // Cổng duyệt: AI không đụng được góp ý chưa duyệt (đọc, nhận, nhắn, đổi trạng thái…) — đây là điểm chặn chung của mọi route theo id.
+  if (blockedUntilApproved(auth.scope, project, fb)) return { ok: false, response: fail(403, "Góp ý này chưa được quản trị dự án duyệt") };
   return { ok: true, auth, project, fb };
 }
 

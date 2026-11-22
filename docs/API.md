@@ -122,8 +122,10 @@ Hàng đợi của worker: góp ý `pending`/`reviewing` **không phải** `ques
 - `?kind=question` ⇒ hàng đợi **Hỏi đáp** (`pending`, `kind=question`), độc lập với chế độ dự án.
 - Gọi bằng khoá worker cập nhật `workerSeenAt`.
 
+**Cổng duyệt.** Dự án bật `features.requireApproval` thì khoá **worker** và **reader** chỉ thấy góp ý **đã duyệt** (`approvedAt != null`): danh sách, hàng đợi (`stopRequested` cũng vậy) và mọi route theo id (đọc, nhận, nhắn tin, đổi trạng thái…) trả `403 "Góp ý này chưa được quản trị dự án duyệt"` với góp ý chưa duyệt. Khoá **operator** không bị chặn. Duyệt là quyết định của con người (xem §3); máy không có đường nào đặt `approvedAt`. Hàng đợi Hỏi đáp (`?kind=question`) không qua cổng này.
+
 ### `GET /machine/feedback`
-Liệt kê cho người xử lý tay. Lọc: `project`, `status` / `kind` / `source` (nhiều giá trị cách nhau dấu phẩy), `contentRef`, `ids` (danh sách id), `q` (tìm trong tiêu đề). Phân trang: `limit` (≤ 200), `offset`, `order` (`asc`\|`desc`, mặc định `asc`). Operator không kèm `project` ⇒ mọi dự án.
+Liệt kê cho người xử lý tay. Lọc: `approved=1|0` (đã/chưa duyệt; worker/reader ở dự án bật cổng duyệt luôn chỉ thấy đã duyệt), `project`, `status` / `kind` / `source` (nhiều giá trị cách nhau dấu phẩy), `contentRef`, `ids` (danh sách id), `q` (tìm trong tiêu đề). Phân trang: `limit` (≤ 200), `offset`, `order` (`asc`\|`desc`, mặc định `asc`). Operator không kèm `project` ⇒ mọi dự án.
 
 ### `POST /machine/feedback`
 Máy tự lập góp ý (vd. phiếu rà soát nợ kỹ thuật). Cần dự án xác định. Người gửi là `"system"` nên không nhận thông báo. Trường: `title`, `body?`, `kind?`, `type?`, `reporterName?`, `pagePath?`, `scope?`, `source?` (`system`\|`api`\|`import`), `requirePlan?`, `status?`.
@@ -191,6 +193,6 @@ Dự án không được gán trả **404** (như không tồn tại). Danh sác
 | `GET /api/admin/projects/{slug}/secret` · `POST …/rotate-secret` | Xem / đổi khoá ký token |
 | `POST /api/admin/projects/{slug}/keys` `{ label, scope?: "worker" \| "reader" }` | Cấp khoá worker (mặc định) hoặc khoá chỉ đọc (hiện một lần) |
 | `GET/POST /api/admin/keys` · `DELETE /api/admin/keys/{id}` | Khoá operator: liệt kê / cấp (chỉ quản trị toàn hub). `DELETE` thu hồi mọi khoá: khoá dự án do `manager` của dự án đó, khoá operator do quản trị toàn hub |
-| `GET /api/admin/feedback` · `GET/PATCH /api/admin/feedback/{id}` | Bảng góp ý, chi tiết, trả lời/đổi trạng thái |
+| `GET /api/admin/feedback` · `GET/PATCH /api/admin/feedback/{id}` | Bảng góp ý (lọc `approval=approved\|pending`), chi tiết, trả lời/đổi trạng thái. `PATCH { approved: true\|false }` = duyệt / bỏ duyệt (cần quyền `manager`; ghi sự kiện `approval`, đặt `approvedAt`/`approvedBy`) |
 
-`PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý; `textSelection`: bật bong bóng "Góp ý đoạn này" khi bôi đen chữ; `selectionScope`: bộ chọn CSS giới hạn vùng bôi đen, ≤ 200 ký tự, không chứa `<` `>`; `hidePaths`: tối đa 30 tiền tố đường dẫn bắt đầu bằng `/` mà widget ẩn mọi lối vào), `theme`, `webhookUrl`. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.
+`PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý; `textSelection`: bật bong bóng "Góp ý đoạn này" khi bôi đen chữ; `selectionScope`: bộ chọn CSS giới hạn vùng bôi đen, ≤ 200 ký tự, không chứa `<` `>`; `requireApproval`: bật cổng duyệt cho khoá AI; `hidePaths`: tối đa 30 tiền tố đường dẫn bắt đầu bằng `/` mà widget ẩn mọi lối vào), `theme`, `webhookUrl`. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.
