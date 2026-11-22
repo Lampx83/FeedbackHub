@@ -169,6 +169,14 @@ Bật `anonymousSubmit` trên dự án. Không token; gọi kèm header `X-Hub-P
 - `adminRoles`: xem và xử lý **mọi** góp ý của dự án, đổi trạng thái tay. Vai trò khác chỉ thấy góp ý **của chính mình** (`reporterId == uid`).
 - Người gửi luôn được: nhắn tin, nghiệm thu, duyệt kế hoạch, bấm Dừng trên góp ý của mình. **Đổi trạng thái tay** chỉ dành cho quản trị dự án.
 
+### 5.3b Tài khoản bảng điều khiển & vai trò theo dự án
+
+Tách khỏi `adminRoles` (vai trò của người dùng cuối trong ứng dụng chủ). Tài khoản đăng nhập hub có thể là:
+- **Quản trị toàn hub** (`AdminUser.superAdmin`): mọi dự án, tài khoản, khoá operator, tạo/xoá dự án. Tài khoản có sẵn trước khi có tính năng này giữ nguyên quyền này.
+- **Tài khoản thường** gán vào từng dự án qua `ProjectMember` với vai trò `manager` (xem + xử lý + cài đặt + khoá dự án đó, không xoá) hoặc `viewer` (chỉ đọc góp ý).
+
+Mọi route `/api/admin/**` kiểm quyền theo dự án (xem [API.md §3](API.md)); dự án không được gán trả 404. Khoá tài khoản (`disabled`) và đổi/đặt lại mật khẩu (`sessionsValidAfter`) huỷ phiên đang mở ngay. Hub luôn giữ ≥ 1 quản trị toàn hub hoạt động.
+
 ### 5.4 Khoá máy
 
 | Khoá | Tiền tố | Phạm vi |

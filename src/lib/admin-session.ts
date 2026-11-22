@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { BASE_PATH } from "./base-path";
 import { authSecret } from "./env";
 import { fail } from "./http";
 import { prisma } from "./prisma";
@@ -15,13 +16,30 @@ export async function createSession(adminId: string): Promise<string> {
     .sign(key());
 }
 
-/** Người quản trị đang đăng nhập (đọc từ cookie), hoặc null. Dùng trong trang và route. */
+/** Đặt cookie phiên cho tài khoản (đăng nhập, hoặc cấp lại sau khi đổi mật khẩu). */
+export async function setSessionCookie(adminId: string) {
+  (await cookies()).set(SESSION_COOKIE, await createSession(adminId), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: BASE_PATH || "/", // chỉ gửi cookie trong phạm vi hub khi chạy dưới đường dẫn con của tên miền dùng chung
+    maxAge: 12 * 3600,
+  });
+}
+
+/** Mốc "phiên cấp trước đây bị huỷ", làm tròn xuống giây để token cấp ngay sau đó (cùng giây) vẫn hợp lệ. */
+export const sessionCutoff = () => new Date(Math.floor(Date.now() / 1000) * 1000);
+
+/** Người quản trị đang đăng nhập (đọc từ cookie), hoặc null. Tài khoản bị khoá hoặc phiên cấp trước lúc đổi mật khẩu → null. */
 export async function currentAdmin() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, key(), { algorithms: ["HS256"] });
-    return payload.sub ? await prisma.adminUser.findUnique({ where: { id: payload.sub } }) : null;
+    const admin = payload.sub ? await prisma.adminUser.findUnique({ where: { id: payload.sub } }) : null;
+    if (!admin || admin.disabled) return null;
+    if (admin.sessionsValidAfter && (payload.iat ?? 0) * 1000 < admin.sessionsValidAfter.getTime()) return null;
+    return admin;
   } catch {
     return null;
   }

@@ -15,7 +15,7 @@ import { TypesTab } from "./TypesTab";
 import type { ProjectData, Save } from "./types";
 import type { KeyRow } from "../KeysBoard";
 
-const TABS = [
+const ALL_TABS = [
   { id: "general", label: "Chung" },
   { id: "mode", label: "Chế độ" },
   { id: "types", label: "Loại góp ý" },
@@ -24,9 +24,11 @@ const TABS = [
   { id: "keys", label: "Khoá & nhúng" },
   { id: "danger", label: "Nguy hiểm" },
 ] as const;
-type TabId = (typeof TABS)[number]["id"];
+type TabId = (typeof ALL_TABS)[number]["id"];
 
-export function ProjectSettings({ initial, initialTab, initialWarnings, hubUrl }: { initial: ProjectData; initialTab?: string; initialWarnings: string[]; hubUrl: string }) {
+export function ProjectSettings({ initial, initialTab, initialWarnings, hubUrl, canDelete = false }: { initial: ProjectData; initialTab?: string; initialWarnings: string[]; hubUrl: string; canDelete?: boolean }) {
+  // Tab "Nguy hiểm" (xoá dự án) chỉ dành cho quản trị toàn hub.
+  const TABS = canDelete ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "danger");
   const [project, setProject] = useState(initial);
   const [warnings, setWarnings] = useState(initialWarnings);
   const [tab, setTabState] = useState<TabId>(TABS.some((t) => t.id === initialTab) ? (initialTab as TabId) : "general");
@@ -87,7 +89,7 @@ export function ProjectSettings({ initial, initialTab, initialWarnings, hubUrl }
       {tab === "features" ? <FeaturesTab project={project} save={save} /> : null}
       {tab === "theme" ? <ThemeTab project={project} save={save} warnings={warnings} /> : null}
       {tab === "keys" ? <KeysEmbedTab project={project} hubUrl={hubUrl} reloadKeys={reloadKeys} /> : null}
-      {tab === "danger" ? <DangerTab project={project} /> : null}
+      {tab === "danger" && canDelete ? <DangerTab project={project} /> : null}
     </>
   );
 }

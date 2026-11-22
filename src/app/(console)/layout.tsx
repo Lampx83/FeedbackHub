@@ -3,5 +3,5 @@ import { requireAdminPage } from "./auth";
 
 export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdminPage();
-  return <ConsoleShell adminName={admin.name} adminEmail={admin.email}>{children}</ConsoleShell>;
+  return <ConsoleShell adminName={admin.name} adminEmail={admin.email} superAdmin={admin.superAdmin}>{children}</ConsoleShell>;
 }

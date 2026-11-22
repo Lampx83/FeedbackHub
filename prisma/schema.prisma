@@ -17,14 +17,39 @@ model AdminUser {
   name         String
   passwordHash String
   createdAt    DateTime @default(now())
+
+  /// Quản trị toàn hub (mọi dự án, tài khoản, khoá operator). Mặc định true để tài khoản có sẵn giữ nguyên quyền.
+  superAdmin         Boolean         @default(true)
+  /// Bị khoá: không đăng nhập được, phiên đang mở mất hiệu lực ngay.
+  disabled           Boolean         @default(false)
+  /// Phiên (JWT) cấp trước mốc này bị từ chối — đặt khi đổi/đặt lại mật khẩu để đăng xuất mọi nơi.
+  sessionsValidAfter DateTime?
+  memberships        ProjectMember[]
+}
+
+/// Người dùng hub (không phải quản trị toàn hub) được gán vào từng dự án.
+/// manager: xem + xử lý + cài đặt dự án đó; viewer: chỉ xem góp ý.
+model ProjectMember {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  adminId   String
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  /// manager | viewer
+  role      String
+  createdAt DateTime  @default(now())
+
+  @@unique([projectId, adminId])
+  @@index([adminId])
 }
 
 /// Một ứng dụng dùng hub. Mọi cấu hình riêng của ứng dụng nằm ở đây, nên thêm ứng dụng
 /// mới không phải sửa mã của hub.
 model Project {
-  id   String @id @default(cuid())
-  slug String @unique
-  name String
+  id      String          @id @default(cuid())
+  slug    String          @unique
+  name    String
+  members ProjectMember[]
 
   /// Khoá ký token người dùng (HS256), mã hoá AES-GCM bằng HUB_ENCRYPTION_KEY. Ứng dụng chủ
   /// giữ bản gốc để ký; hub cần bản gốc để kiểm chữ ký nên không thể chỉ lưu băm.
@@ -32,13 +57,13 @@ model Project {
 
   /// Tên miền được phép gọi API từ trình duyệt (vd. https://app.example.com). Rỗng = chỉ
   /// gọi từ máy chủ (không có CORS).
-  allowedOrigins String[]
+  allowedOrigins  String[]
   /// Vai trò được GỬI góp ý. Rỗng = mọi người có token hợp lệ.
-  submitRoles    String[]
+  submitRoles     String[]
   /// Vai trò xem và xử lý MỌI góp ý của dự án; vai trò khác chỉ thấy góp ý của chính mình.
-  adminRoles     String[]
+  adminRoles      String[]
   /// Cho gửi ẩn danh (không token) qua khoá công khai + tên miền + giới hạn tần suất.
-  anonymousSubmit Boolean @default(false)
+  anonymousSubmit Boolean  @default(false)
 
   /// collect = chỉ thu nhận | execute = worker tự nhận việc và làm.
   mode    String @default("collect")
@@ -88,7 +113,7 @@ model Feedback {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   /// function | content | bug | question | other — phân loại chuẩn, quyết định ai xử lý.
-  kind  String @default("other")
+  kind  String  @default("other")
   /// Loại riêng của ứng dụng (vd. DGXL: add|edit|change|bug|other|qa). Tuỳ chọn.
   type  String?
   title String

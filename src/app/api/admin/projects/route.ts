@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { projectFilter, projectScope, requireSuperApi } from "@/lib/admin-access";
 import { requireAdminApi } from "@/lib/admin-session";
 import { encrypt, randomToken } from "@/lib/crypto";
 import { fail, json, readBody } from "@/lib/http";
@@ -11,7 +12,9 @@ export const runtime = "nodejs";
 export async function GET() {
   const a = await requireAdminApi();
   if (!a.ok) return a.response;
+  const scope = await projectScope(a.admin);
   const projects = await prisma.project.findMany({
+    where: projectFilter(scope),
     orderBy: { createdAt: "asc" },
     select: {
       id: true, slug: true, name: true, mode: true, deliver: true, anonymousSubmit: true,
@@ -21,11 +24,11 @@ export async function GET() {
   });
   const open = await prisma.feedback.groupBy({
     by: ["projectId"],
-    where: { status: { in: ["pending", "reviewing", "deploying", "awaiting_user"] }, kind: { not: "question" } },
+    where: { project: projectFilter(scope), status: { in: ["pending", "reviewing", "deploying", "awaiting_user"] }, kind: { not: "question" } },
     _count: { _all: true },
   });
   const openBy = new Map(open.map((o) => [o.projectId, o._count._all]));
-  return json({ projects: projects.map((p) => ({ ...p, openCount: openBy.get(p.id) ?? 0 })) });
+  return json({ projects: projects.map((p) => ({ ...p, openCount: openBy.get(p.id) ?? 0, myRole: scope.all ? "super" : scope.roles.get(p.id) ?? null })) });
 }
 
 const schema = z.object({
@@ -38,7 +41,7 @@ const schema = z.object({
 
 /** Tạo dự án mới. Trả khoá ký token MỘT LẦN ở đây (xem lại được ở trang dự án vì lưu mã hoá, không băm). */
 export async function POST(req: Request) {
-  const a = await requireAdminApi();
+  const a = await requireSuperApi();
   if (!a.ok) return a.response;
   const body = await readBody(req, schema);
   if (!body.ok) return body.response;

@@ -168,16 +168,29 @@ Nhập dữ liệu cũ (≤ 200 góp ý/lần) giữ nguyên `id`, thời gian, 
 
 ## 3. API quản trị bảng điều khiển (cookie)
 
-Cookie `hub_session` (đăng nhập `POST /api/admin/login { email, password }`, hiệu lực 12 giờ). Dành cho giao diện bảng điều khiển; tự động hoá nên dùng khoá operator thay vì cookie.
+Cookie `hub_session` (đăng nhập `POST /api/admin/login { email, password }`, hiệu lực 12 giờ). Dành cho giao diện bảng điều khiển; tự động hoá nên dùng khoá operator thay vì cookie. Tài khoản bị khoá (403 lúc đăng nhập) hoặc phiên cấp trước lúc đổi/đặt lại mật khẩu thì không còn hiệu lực (401).
+
+**Phân quyền theo dự án** (kiểm ở mọi route, không chỉ giao diện):
+
+| Vai trò | Phạm vi |
+|---|---|
+| Quản trị toàn hub (`superAdmin`) | Mọi dự án; tạo/xoá dự án; khoá operator; quản lý tài khoản |
+| `manager` (Quản trị dự án) | Chỉ dự án được gán: xem + trả lời/đổi trạng thái góp ý, cài đặt, khoá worker/reader, khoá ký. **Không** xoá dự án |
+| `viewer` (Chỉ xem) | Chỉ dự án được gán: đọc góp ý và tệp đính kèm (ghi → 403; không thấy khoá) |
+
+Dự án không được gán trả **404** (như không tồn tại). Danh sách `projects`/`feedback` chỉ gồm dự án được phép; `GET /projects` kèm `myRole`, `GET /feedback/{id}` kèm `canManage`.
 
 | Route | Việc |
 |---|---|
-| `POST /api/admin/login` · `POST /api/admin/logout` · `GET /api/admin/me` | Phiên |
-| `GET/POST /api/admin/projects` | Liệt kê / tạo dự án (trả `signingSecret` một lần) |
-| `GET/PATCH/DELETE /api/admin/projects/{slug}` | Xem / cấu hình / xoá (xoá phải gửi `{ "confirm": "<slug>" }`) |
+| `POST /api/admin/login` · `POST /api/admin/logout` · `GET /api/admin/me` | Phiên (`me` kèm `superAdmin`) |
+| `POST /api/admin/me/password` `{ current, next }` | Tự đổi mật khẩu (≥ 10 ký tự, phải đúng mật khẩu hiện tại, 5 lần/10 phút). Mọi phiên khác bị đăng xuất, phiên này được cấp lại |
+| `GET/POST /api/admin/users` | Chỉ quản trị toàn hub. Liệt kê / tạo tài khoản `{ email, name, password, superAdmin?=false, memberships?: [{ slug, role: "manager"\|"viewer" }] }` |
+| `PATCH/DELETE /api/admin/users/{id}` | Chỉ quản trị toàn hub. `PATCH` nhận `name`, `superAdmin`, `disabled`, `password` (đặt lại, đăng xuất người đó), `memberships` (thay toàn bộ). Không tự khoá/hạ quyền/xoá mình; hub luôn còn ≥ 1 quản trị toàn hub hoạt động |
+| `GET/POST /api/admin/projects` | Liệt kê (theo phạm vi) / tạo dự án (chỉ quản trị toàn hub; trả `signingSecret` một lần) |
+| `GET/PATCH/DELETE /api/admin/projects/{slug}` | Xem (`viewer` trở lên) / cấu hình (`manager`) / xoá (chỉ quản trị toàn hub, gửi `{ "confirm": "<slug>" }`) |
 | `GET /api/admin/projects/{slug}/secret` · `POST …/rotate-secret` | Xem / đổi khoá ký token |
 | `POST /api/admin/projects/{slug}/keys` `{ label, scope?: "worker" \| "reader" }` | Cấp khoá worker (mặc định) hoặc khoá chỉ đọc (hiện một lần) |
-| `GET/POST /api/admin/keys` · `DELETE /api/admin/keys/{id}` | Khoá operator: liệt kê / cấp / thu hồi (khoá worker cũng thu hồi qua route này) |
+| `GET/POST /api/admin/keys` · `DELETE /api/admin/keys/{id}` | Khoá operator: liệt kê / cấp (chỉ quản trị toàn hub). `DELETE` thu hồi mọi khoá: khoá dự án do `manager` của dự án đó, khoá operator do quản trị toàn hub |
 | `GET /api/admin/feedback` · `GET/PATCH /api/admin/feedback/{id}` | Bảng góp ý, chi tiết, trả lời/đổi trạng thái |
 
 `PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý; `textSelection`: bật bong bóng "Góp ý đoạn này" khi bôi đen chữ; `selectionScope`: bộ chọn CSS giới hạn vùng bôi đen, ≤ 200 ký tự, không chứa `<` `>`; `hidePaths`: tối đa 30 tiền tố đường dẫn bắt đầu bằng `/` mà widget ẩn mọi lối vào), `theme`, `webhookUrl`. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.

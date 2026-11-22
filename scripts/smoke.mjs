@@ -272,6 +272,99 @@ try {
   ok((await call("POST", `/api/v1/machine/feedback/${rid}/transition`, { key: R, body: { to: "done" } })).status === 403, "khoá chỉ đọc không đổi trạng thái (403)");
   ok((await call("POST", `/api/v1/machine/import?project=${slug}`, { key: R, body: { items: [] } })).status === 403, "khoá chỉ đọc không nhập dữ liệu (403)")
 
+  // ── tài khoản & vai trò theo dự án: người thường chỉ thấy/làm trong dự án được gán ──
+  const tag = Date.now().toString(36);
+  const slugB = `${slug}-b`;
+  const PW = "Smoke-pass-12345";
+  const ipH = () => ({ "x-forwarded-for": `10.77.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
+  const loginAs = async (email, password) => {
+    const r = await call("POST", "/api/admin/login", { body: { email, password }, headers: ipH() });
+    return { status: r.status, cookie: r.res.headers.get("set-cookie")?.split(";")[0], data: r.data };
+  };
+  ok((await call("POST", "/api/admin/projects", { cookie, body: { slug: slugB, name: "Smoke B" } })).status === 200, "tạo dự án B để thử cô lập");
+  const mk = (email, name, memberships, extra = {}) => call("POST", "/api/admin/users", { cookie, body: { email, name, password: PW, memberships, ...extra } });
+  const mgrEmail = `smoke-mgr-${tag}@example.com`, viewEmail = `smoke-view-${tag}@example.com`, otherEmail = `smoke-other-${tag}@example.com`;
+  const mgrC = await mk(mgrEmail, "Quản trị dự án", [{ slug, role: "manager" }]);
+  ok(mgrC.status === 201 && mgrC.data.user?.superAdmin === false && !JSON.stringify(mgrC.data).includes("passwordHash"), "tạo tài khoản thường (không phải quản trị toàn hub, không lộ băm)", JSON.stringify(mgrC.data).slice(0, 160));
+  ok((await mk(mgrEmail, "Trùng", [])).status === 409, "email trùng bị từ chối (409)");
+  ok((await call("POST", "/api/admin/users", { cookie, body: { email: `smoke-short-${tag}@example.com`, name: "Ngắn", password: "short" } })).status === 400, "mật khẩu ngắn bị từ chối (400)");
+  ok((await mk(`smoke-bad-${tag}@example.com`, "Sai dự án", [{ slug: "khong-co-du-an", role: "viewer" }])).status === 400, "gán dự án không tồn tại bị từ chối (400)");
+  const viewC = await mk(viewEmail, "Chỉ xem", [{ slug, role: "viewer" }]);
+  const othC = await mk(otherEmail, "Quản trị dự án B", [{ slug: slugB, role: "manager" }]);
+  ok(viewC.status === 201 && othC.status === 201, "tạo tài khoản chỉ xem và tài khoản dự án khác");
+
+  const M = await loginAs(mgrEmail, PW), V = await loginAs(viewEmail, PW), O = await loginAs(otherEmail, PW);
+  ok(M.status === 200 && V.status === 200 && O.status === 200, "tài khoản thường đăng nhập được");
+  ok((await call("GET", "/api/admin/me", { cookie: M.cookie })).data.superAdmin === false, "/me báo không phải quản trị toàn hub");
+  const mProjects = await call("GET", "/api/admin/projects", { cookie: M.cookie });
+  ok(JSON.stringify(mProjects.data.projects.map((p) => p.slug)) === JSON.stringify([slug]) && mProjects.data.projects[0].myRole === "manager", "danh sách dự án chỉ gồm dự án được gán", JSON.stringify(mProjects.data).slice(0, 200));
+  ok((await call("GET", `/api/admin/projects/${slug}`, { cookie: M.cookie })).status === 200, "quản trị dự án mở được dự án của mình");
+  ok((await call("GET", `/api/admin/projects/${slugB}`, { cookie: M.cookie })).status === 404, "dự án không được gán trả 404 (không lộ sự tồn tại)");
+  ok((await call("PATCH", `/api/admin/projects/${slugB}`, { cookie: M.cookie, body: { name: "Chiếm quyền" } })).status === 404, "không sửa được dự án không được gán");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: M.cookie, body: { name: "Smoke đổi tên" } })).status === 200, "quản trị dự án sửa được cài đặt dự án mình");
+  ok((await call("GET", `/api/admin/projects/${slug}/secret`, { cookie: M.cookie })).status === 200, "quản trị dự án xem được khoá ký của dự án mình");
+  ok((await call("GET", `/api/admin/projects/${slugB}/secret`, { cookie: M.cookie })).status === 404, "không xem được khoá ký dự án khác");
+  ok((await call("POST", "/api/admin/projects", { cookie: M.cookie, body: { slug: `x-${tag}`, name: "Tạo lậu" } })).status === 403, "người thường không tạo được dự án (403)");
+  ok((await call("DELETE", `/api/admin/projects/${slug}`, { cookie: M.cookie, body: { confirm: slug } })).status === 403, "quản trị dự án không xoá được dự án (403)");
+  ok((await call("GET", "/api/admin/keys", { cookie: M.cookie })).status === 403, "người thường không thấy khoá operator (403)");
+  ok((await call("POST", "/api/admin/keys", { cookie: M.cookie, body: { label: "lau-operator" } })).status === 403, "người thường không cấp khoá operator (403)");
+  ok((await call("GET", "/api/admin/users", { cookie: M.cookie })).status === 403, "người thường không xem danh sách tài khoản (403)");
+  ok((await call("PATCH", `/api/admin/users/${mgrC.data.user.id}`, { cookie: M.cookie, body: { superAdmin: true } })).status === 403, "không tự nâng mình thành quản trị toàn hub (403)");
+
+  const mList = await call("GET", "/api/admin/feedback", { cookie: M.cookie });
+  ok(mList.status === 200 && mList.data.items.length > 0 && mList.data.items.every((i) => i.project.slug === slug), "bảng góp ý chỉ chứa dự án được gán");
+  ok((await call("GET", `/api/admin/feedback?project=${slugB}`, { cookie: M.cookie })).data.items.length === 0, "lọc theo dự án không được gán trả rỗng");
+  ok((await call("GET", `/api/admin/feedback/${rid}`, { cookie: O.cookie })).status === 404, "quản trị dự án B không đọc được góp ý của dự án khác (404)");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie: O.cookie, body: { message: "chen ngang" } })).status === 404, "quản trị dự án B không trả lời góp ý dự án khác");
+  const mDetail = await call("GET", `/api/admin/feedback/${rid}`, { cookie: M.cookie });
+  ok(mDetail.status === 200 && mDetail.data.canManage === true, "quản trị dự án đọc được góp ý + canManage");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie: M.cookie, body: { message: "Đã ghi nhận (smoke)" } })).status === 200, "quản trị dự án trả lời được góp ý");
+
+  const keysNow = (await call("GET", `/api/admin/projects/${slug}`, { cookie })).data.project.keys;
+  const rkId = keysNow.find((k) => k.label === "reader-smoke")?.id;
+  ok(rkId && (await call("DELETE", `/api/admin/keys/${rkId}`, { cookie: O.cookie })).status === 404, "không thu hồi được khoá của dự án khác (404)");
+
+  const vDetail = await call("GET", `/api/admin/feedback/${rid}`, { cookie: V.cookie });
+  ok(vDetail.status === 200 && vDetail.data.canManage === false, "người chỉ xem đọc được góp ý, canManage=false");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie: V.cookie, body: { message: "viet bay" } })).status === 403, "người chỉ xem không trả lời được (403)");
+  ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie: V.cookie, body: { status: "done" } })).status === 403, "người chỉ xem không đổi trạng thái (403)");
+  const vProj = await call("GET", `/api/admin/projects/${slug}`, { cookie: V.cookie });
+  ok(vProj.status === 200 && vProj.data.project.keys.length === 0, "người chỉ xem không thấy danh sách khoá");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: V.cookie, body: { name: "Viết bậy" } })).status === 403, "người chỉ xem không sửa được cài đặt (403)");
+  ok((await call("GET", `/api/admin/projects/${slug}/secret`, { cookie: V.cookie })).status === 403, "người chỉ xem không xem được khoá ký (403)");
+  ok((await call("POST", `/api/admin/projects/${slug}/keys`, { cookie: V.cookie, body: { label: "lau-key", scope: "reader" } })).status === 403, "người chỉ xem không cấp khoá (403)");
+
+  // Khoá / mở khoá / đặt lại mật khẩu
+  const mid = mgrC.data.user.id;
+  ok((await call("PATCH", `/api/admin/users/${mid}`, { cookie, body: { disabled: true } })).status === 200, "khoá tài khoản");
+  ok((await call("GET", "/api/admin/me", { cookie: M.cookie })).status === 401, "phiên đang mở của tài khoản bị khoá mất hiệu lực ngay");
+  ok((await loginAs(mgrEmail, PW)).status === 403, "tài khoản bị khoá không đăng nhập được (403)");
+  ok((await call("PATCH", `/api/admin/users/${mid}`, { cookie, body: { disabled: false } })).status === 200 && (await loginAs(mgrEmail, PW)).status === 200, "mở khoá thì đăng nhập lại được");
+  const NEWPW = "Smoke-reset-67890";
+  ok((await call("PATCH", `/api/admin/users/${mid}`, { cookie, body: { password: NEWPW } })).status === 200, "quản trị đặt lại mật khẩu");
+  ok((await loginAs(mgrEmail, PW)).status === 401 && (await loginAs(mgrEmail, NEWPW)).status === 200, "mật khẩu cũ hết dùng, mật khẩu mới đăng nhập được");
+  ok((await call("PATCH", `/api/admin/users/${mid}`, { cookie, body: { password: "short" } })).status === 400, "đặt lại mật khẩu quá ngắn bị từ chối");
+  const M2 = await loginAs(mgrEmail, NEWPW);
+
+  // Tự đổi mật khẩu
+  ok((await call("POST", "/api/admin/me/password", { cookie: M2.cookie, body: { current: "sai-mat-khau-hien-tai", next: "Smoke-self-24680" } })).status === 400, "đổi mật khẩu sai mật khẩu hiện tại bị từ chối");
+  ok((await call("POST", "/api/admin/me/password", { cookie: M2.cookie, body: { current: NEWPW, next: "ngan" } })).status === 400, "mật khẩu mới quá ngắn bị từ chối");
+  const SELFPW = "Smoke-self-24680";
+  const chg = await call("POST", "/api/admin/me/password", { cookie: M2.cookie, body: { current: NEWPW, next: SELFPW } });
+  const M3 = chg.res.headers.get("set-cookie")?.split(";")[0];
+  ok(chg.status === 200 && M3, "tự đổi mật khẩu thành công và được cấp phiên mới");
+  ok((await call("GET", "/api/admin/me", { cookie: M3 })).status === 200, "phiên mới sau khi đổi mật khẩu dùng được");
+  ok((await loginAs(mgrEmail, NEWPW)).status === 401 && (await loginAs(mgrEmail, SELFPW)).status === 200, "đổi xong chỉ còn mật khẩu mới");
+
+  // Thay danh sách dự án được gán, nâng/hạ quyền, bảo vệ quản trị cuối cùng
+  ok((await call("PATCH", `/api/admin/users/${mid}`, { cookie, body: { memberships: [{ slug: slugB, role: "viewer" }] } })).status === 200, "thay danh sách dự án được gán");
+  ok((await call("GET", `/api/admin/projects/${slug}`, { cookie: M3 })).status === 404, "gỡ gán thì mất quyền ngay (không cần đăng nhập lại)");
+  const meSuper = (await call("GET", "/api/admin/users", { cookie })).data;
+  ok((await call("PATCH", `/api/admin/users/${meSuper.selfId}`, { cookie, body: { superAdmin: false } })).status === 400, "không tự hạ quyền chính mình");
+  ok((await call("PATCH", `/api/admin/users/${meSuper.selfId}`, { cookie, body: { disabled: true } })).status === 400, "không tự khoá chính mình");
+  ok((await call("DELETE", `/api/admin/users/${meSuper.selfId}`, { cookie })).status === 400, "không tự xoá chính mình");
+  ok((await call("PATCH", `/api/admin/users/${meSuper.selfId}`, { cookie, body: { password: "Smoke-own-pw-1234" } })).status === 400, "không đặt lại mật khẩu của chính mình qua trang quản lý");
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);
@@ -281,6 +374,8 @@ try {
     const l = await call("POST", "/api/admin/login", { body: { email: EMAIL, password: PASS } });
     const c = l.res.headers.get("set-cookie")?.split(";")[0];
     await call("DELETE", `/api/admin/projects/${slug}`, { cookie: c, body: { confirm: slug } });
+    await call("DELETE", `/api/admin/projects/${slug}-b`, { cookie: c, body: { confirm: `${slug}-b` } });
+    for (const u of (await call("GET", "/api/admin/users", { cookie: c })).data.users || []) if (/^smoke-.*@example\.com$/.test(u.email)) await call("DELETE", `/api/admin/users/${u.id}`, { cookie: c });
     const keys = (await call("GET", "/api/admin/keys", { cookie: c })).data.keys || [];
     for (const k of keys.filter((k) => k.label === "operator-smoke" && !k.revokedAt)) await call("DELETE", `/api/admin/keys/${k.id}`, { cookie: c });
   } catch {}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/admin-session";
+import { requireSuperApi } from "@/lib/admin-access";
 import { randomToken, sha256 } from "@/lib/crypto";
 import { json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const a = await requireAdminApi();
+  const a = await requireSuperApi();
   if (!a.ok) return a.response;
   const keys = await prisma.apiKey.findMany({
     where: { scope: "operator" },
@@ -19,7 +19,7 @@ export async function GET() {
 
 /** Cấp khoá operator (mọi dự án) — dùng cho Claude/MCP/CLI. Tách khỏi khoá worker để thu hồi riêng được. */
 export async function POST(req: Request) {
-  const a = await requireAdminApi();
+  const a = await requireSuperApi();
   if (!a.ok) return a.response;
   const body = await readBody(req, z.object({ label: z.string().min(2).max(60) }));
   if (!body.ok) return body.response;

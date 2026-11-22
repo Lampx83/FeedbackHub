@@ -7,3 +7,10 @@ export async function requireAdminPage() {
   if (!admin) redirect("/login");
   return admin;
 }
+
+/** Trang chỉ dành cho quản trị toàn hub; người khác về trang tổng quan. */
+export async function requireSuperPage() {
+  const admin = await requireAdminPage();
+  if (!admin.superAdmin) redirect("/");
+  return admin;
+}

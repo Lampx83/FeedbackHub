@@ -5,11 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "./api";
 
-const NAV = [
+const NAV: readonly { href: string; label: string; icon: string; superOnly?: boolean }[] = [
   { href: "/", label: "Tổng quan", icon: "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V11z" },
   { href: "/board", label: "Góp ý", icon: "M4 5h16v11H8l-4 4V5z" },
-  { href: "/keys", label: "Khoá operator", icon: "M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.9-1.9A4 4 0 0 1 15 7z" },
-] as const;
+  { href: "/keys", label: "Khoá operator", icon: "M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.9-1.9A4 4 0 0 1 15 7z", superOnly: true },
+  { href: "/users", label: "Tài khoản", icon: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1", superOnly: true },
+];
 
 function isActive(path: string, href: string) {
   return href === "/" ? path === "/" || path.startsWith("/projects") : path.startsWith(href);
@@ -23,7 +24,7 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-export function ConsoleShell({ adminName, adminEmail, children }: { adminName: string; adminEmail: string; children: React.ReactNode }) {
+export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { adminName: string; adminEmail: string; superAdmin: boolean; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -36,7 +37,7 @@ export function ConsoleShell({ adminName, adminEmail, children }: { adminName: s
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Điều hướng chính">
-      {NAV.map((n) => {
+      {NAV.filter((n) => superAdmin || !n.superOnly).map((n) => {
         const active = isActive(path, n.href);
         return (
           <Link
@@ -54,10 +55,11 @@ export function ConsoleShell({ adminName, adminEmail, children }: { adminName: s
         );
       })}
       <div className="mt-auto border-t border-line pt-3">
-        <div className="px-3 pb-2 text-xs leading-snug">
-          <div className="truncate font-medium">{adminName}</div>
+        <Link href="/account" onClick={() => setOpen(false)} aria-current={path.startsWith("/account") ? "page" : undefined} className={`mb-1 block rounded-lg px-3 py-2 text-xs leading-snug transition hover:bg-surface-2 ${path.startsWith("/account") ? "bg-brand/12" : ""}`} title="Tài khoản của tôi: đổi mật khẩu, xem dự án được gán">
+          <div className="truncate text-sm font-medium">{adminName}</div>
           <div className="truncate text-muted">{adminEmail}</div>
-        </div>
+          <div className="mt-0.5 text-muted">{superAdmin ? "Quản trị toàn hub" : "Quản trị theo dự án"}</div>
+        </Link>
         <button type="button" onClick={logout} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg">
           <Icon d="M9 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4M16 17l5-5-5-5M21 12H9" />
           Đăng xuất

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/admin-session";
+import { allows, requireProjectIdApi } from "@/lib/admin-access";
 import { addMessage, transition } from "@/lib/feedback";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
@@ -9,8 +9,6 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Ctx) {
-  const a = await requireAdminApi();
-  if (!a.ok) return a.response;
   const fb = await prisma.feedback.findUnique({
     where: { id: (await params).id },
     include: {
@@ -20,7 +18,10 @@ export async function GET(_req: Request, { params }: Ctx) {
       attachments: { select: { id: true, fileName: true, mimeType: true, sizeBytes: true } },
     },
   });
-  return fb ? json({ feedback: fb }) : fail(404, "Không tìm thấy góp ý");
+  if (!fb) return fail(404, "Không tìm thấy góp ý");
+  const a = await requireProjectIdApi(fb.projectId, "view", "Không tìm thấy góp ý");
+  if (!a.ok) return a.response;
+  return json({ feedback: fb, canManage: allows(a.role, "manage") });
 }
 
 const schema = z
@@ -29,12 +30,12 @@ const schema = z
 
 /** Quản trị hub trả lời / đổi trạng thái. Trả lời lúc "chờ người gửi" thì về hàng đợi như ở API người dùng. */
 export async function PATCH(req: Request, { params }: Ctx) {
-  const a = await requireAdminApi();
-  if (!a.ok) return a.response;
   const body = await readBody(req, schema);
   if (!body.ok) return body.response;
   const fb = await prisma.feedback.findUnique({ where: { id: (await params).id }, include: { project: true } });
   if (!fb) return fail(404, "Không tìm thấy góp ý");
+  const a = await requireProjectIdApi(fb.projectId, "manage", "Không tìm thấy góp ý");
+  if (!a.ok) return a.response;
   const { project, ...feedback } = fb;
   const message = body.value.message?.trim();
   const requeue = Boolean(message) && fb.status === "awaiting_user" && !body.value.status;

@@ -1,9 +1,9 @@
 import { KeysBoard } from "@/components/KeysBoard";
-import { requireAdminPage } from "../auth";
+import { requireSuperPage } from "../auth";
 
 export const metadata = { title: "Khoá operator — Feedback Hub" };
 
 export default async function KeysPage() {
-  await requireAdminPage();
+  await requireSuperPage();
   return <KeysBoard />;
 }

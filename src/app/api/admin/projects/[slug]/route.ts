@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/admin-session";
+import { requireProjectApi, requireSuperApi } from "@/lib/admin-access";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { contrastWarnings, parseTheme } from "@/lib/theme";
@@ -8,9 +8,9 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ slug: string }> };
 
 export async function GET(_req: Request, { params }: Ctx) {
-  const a = await requireAdminApi();
-  if (!a.ok) return a.response;
   const { slug } = await params;
+  const a = await requireProjectApi(slug, "view");
+  if (!a.ok) return a.response;
   const p = await prisma.project.findUnique({
     where: { slug },
     include: {
@@ -21,7 +21,9 @@ export async function GET(_req: Request, { params }: Ctx) {
   if (!p) return fail(404, "Không có dự án này");
   const { signingSecretEnc, ...rest } = p;
   void signingSecretEnc;
-  return json({ project: rest, warnings: contrastWarnings(parseTheme(p.theme).ok ? (p.theme as never) : {}) });
+  // Người chỉ xem không cần (và không được) thấy danh sách khoá của dự án.
+  if (a.role === "viewer") rest.keys = [];
+  return json({ myRole: a.role, project: rest, warnings: contrastWarnings(parseTheme(p.theme).ok ? (p.theme as never) : {}) });
 }
 
 const patch = z
@@ -50,9 +52,9 @@ const patch = z
   .partial();
 
 export async function PATCH(req: Request, { params }: Ctx) {
-  const a = await requireAdminApi();
-  if (!a.ok) return a.response;
   const { slug } = await params;
+  const a = await requireProjectApi(slug, "manage");
+  if (!a.ok) return a.response;
   const body = await readBody(req, patch);
   if (!body.ok) return body.response;
   const { theme, features, ...rest } = body.value;
@@ -77,7 +79,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 /** Xoá dự án CÙNG toàn bộ góp ý, tệp và khoá. Giao diện phải bắt gõ lại mã dự án để xác nhận. */
 export async function DELETE(req: Request, { params }: Ctx) {
-  const a = await requireAdminApi();
+  const a = await requireSuperApi();
   if (!a.ok) return a.response;
   const { slug } = await params;
   const body = await readBody(req, z.object({ confirm: z.string() }));

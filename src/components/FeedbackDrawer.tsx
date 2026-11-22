@@ -99,7 +99,7 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
   const titleId = useId();
   useOverlay(true, onClose, panel);
 
-  const { data, error, reload: load } = useLoader<{ feedback: Detail }>(`/api/admin/feedback/${id}`, 15000);
+  const { data, error, reload: load } = useLoader<{ feedback: Detail; canManage?: boolean }>(`/api/admin/feedback/${id}`, 15000);
   const fb = data?.feedback ?? null;
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
@@ -329,7 +329,9 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
           ) : null}
         </div>
 
-        {fb ? (
+        {fb && data?.canManage === false ? (
+          <div className="border-t border-line bg-surface px-5 py-3 text-[13px] text-muted">Bạn chỉ có quyền xem dự án này — không trả lời hay đổi trạng thái được.</div>
+        ) : fb ? (
           <div className="space-y-2.5 border-t border-line bg-surface px-5 py-3">
             {actionError ? <Alert tone="error">{actionError}</Alert> : null}
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Trả lời người gửi (hiện trong luồng trao đổi và gửi webhook cho ứng dụng)…" rows={2} aria-label="Trả lời người gửi" className="min-h-16 resize-y" />

@@ -1,8 +1,6 @@
 import { compare } from "bcryptjs";
-import { BASE_PATH } from "@/lib/base-path";
-import { cookies } from "next/headers";
 import { z } from "zod";
-import { createSession, SESSION_COOKIE } from "@/lib/admin-session";
+import { setSessionCookie } from "@/lib/admin-session";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { clientIp, rateLimit } from "@/lib/rate";
@@ -18,12 +16,7 @@ export async function POST(req: Request) {
   // So băm cả khi không có người dùng để thời gian phản hồi không lộ email nào tồn tại.
   const ok = await compare(body.value.password, admin?.passwordHash ?? "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidi");
   if (!admin || !ok) return fail(401, "Email hoặc mật khẩu không đúng");
-  (await cookies()).set(SESSION_COOKIE, await createSession(admin.id), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: BASE_PATH || "/", // chỉ gửi cookie trong phạm vi hub khi chạy dưới đường dẫn con của tên miền dùng chung
-    maxAge: 12 * 3600,
-  });
+  if (admin.disabled) return fail(403, "Tài khoản đã bị khoá. Liên hệ quản trị hub.");
+  await setSessionCookie(admin.id);
   return json({ ok: true });
 }

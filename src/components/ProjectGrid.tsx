@@ -12,7 +12,7 @@ import { Alert, Badge, Button, Card, EmptyState, Field, Input, PageHeader, Searc
 
 export type ProjectCard = { slug: string; name: string; mode: string; deliver: string; workerSeenAt: string | null; openCount: number };
 
-export function ProjectGrid({ projects, total }: { projects: ProjectCard[]; total: number }) {
+export function ProjectGrid({ projects, total, canCreate = true }: { projects: ProjectCard[]; total: number; canCreate?: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [adding, setAdding] = useState(false);
@@ -29,10 +29,10 @@ export function ProjectGrid({ projects, total }: { projects: ProjectCard[]; tota
         title="Tổng quan"
         description={`Mỗi thẻ là một ứng dụng đang dùng hub để thu góp ý. Hiện có ${projects.length} dự án và ${total} góp ý. Số "đang mở" không tính câu hỏi thuần.`}
       />
-      <Toolbar left={<SearchInput value={q} onChange={setQ} placeholder="Tìm dự án theo tên hoặc mã…" />} right={<AddButton onClick={() => setAdding(true)}>Thêm dự án</AddButton>} />
+      <Toolbar left={<SearchInput value={q} onChange={setQ} placeholder="Tìm dự án theo tên hoặc mã…" />} right={canCreate ? <AddButton onClick={() => setAdding(true)}>Thêm dự án</AddButton> : undefined} />
 
       {projects.length === 0 ? (
-        <EmptyState title="Chưa có dự án nào">Bấm “Thêm dự án” để kết nối ứng dụng đầu tiên.</EmptyState>
+        <EmptyState title="Chưa có dự án nào">{canCreate ? "Bấm “Thêm dự án” để kết nối ứng dụng đầu tiên." : "Bạn chưa được gán dự án nào. Nhờ quản trị hub gán dự án cho tài khoản của bạn."}</EmptyState>
       ) : shown.length === 0 ? (
         <EmptyState title="Không có dự án khớp từ khoá" />
       ) : (
