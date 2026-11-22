@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Mọi trang: không cho nhúng khung (chống clickjacking bảng điều khiển), không đoán kiểu nội dung.
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+      {
         // Thư viện chụp trang nạp theo yêu cầu (import()) từ trang của ứng dụng khác nên cũng cần CORS mở.
         source: "/vendor/:path*",
         headers: [

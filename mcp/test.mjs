@@ -151,7 +151,7 @@ try {
   ok(!rp.isError && text(rp).includes(slug) && /pending=2/.test(text(rp)), "hub_projects thấy dự án thử với 2 góp ý pending", text(rp).slice(0, 200));
 
   const rl = await mcp.tool("hub_list_feedback", { project: slug });
-  ok(!rl.isError && text(rl).includes(id1) && text(rl).includes(id2) && text(rl).indexOf(id1) < text(rl).indexOf(id2), "hub_list_feedback: 2 góp ý, cũ nhất trước");
+  ok(!rl.isError && text(rl).includes(id1) && text(rl).includes(id2) && text(rl).indexOf(id1) < text(rl).indexOf(id2), "hub_list_feedback: 2 góp ý, cũ nhất trước", text(rl).slice(0,400));
   const rlk = await mcp.tool("hub_list_feedback", { project: slug, kind: "bug" });
   ok(text(rlk).includes(id2) && !text(rlk).includes(id1), "hub_list_feedback lọc theo kind");
   const rlq = await mcp.tool("hub_list_feedback", { project: slug, q: "câu 12" });

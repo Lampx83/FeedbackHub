@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicUrl } from "@/lib/env";
 import { projectFeatures, projectTypes } from "@/lib/project-config";
 import { contrastWarnings, parseTheme } from "@/lib/theme";
+import { mailConfigured, projectNotify } from "@/lib/notify";
 import { ProjectSettings } from "@/components/project/ProjectSettings";
 import { redirect } from "next/navigation";
 import { roleOn } from "@/lib/admin-access";
@@ -33,6 +34,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
     <ProjectSettings
       hubUrl={publicUrl()}
       canDelete={admin.superAdmin}
+      mailConfigured={mailConfigured()}
       initialTab={Array.isArray(tab) ? tab[0] : tab}
       initialWarnings={contrastWarnings(themeValue)}
       initial={{
@@ -48,6 +50,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
         features: projectFeatures(p),
         theme: themeValue,
         webhookUrl: p.webhookUrl,
+        notify: projectNotify(p),
         workerSeenAt: p.workerSeenAt?.toISOString() ?? null,
         feedbackCount: p._count.feedback,
         keys: p.keys.map((k) => ({

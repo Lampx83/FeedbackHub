@@ -10,6 +10,7 @@ import { FeaturesTab } from "./FeaturesTab";
 import { GeneralTab } from "./GeneralTab";
 import { KeysEmbedTab } from "./KeysEmbedTab";
 import { ModeTab } from "./ModeTab";
+import { NotifyTab } from "./NotifyTab";
 import { ThemeTab } from "./ThemeTab";
 import { TypesTab } from "./TypesTab";
 import type { ProjectData, Save } from "./types";
@@ -20,13 +21,14 @@ const ALL_TABS = [
   { id: "mode", label: "Chế độ" },
   { id: "types", label: "Loại góp ý" },
   { id: "features", label: "Tính năng" },
+  { id: "notify", label: "Thông báo" },
   { id: "theme", label: "Giao diện" },
   { id: "keys", label: "Khoá & nhúng" },
   { id: "danger", label: "Nguy hiểm" },
 ] as const;
 type TabId = (typeof ALL_TABS)[number]["id"];
 
-export function ProjectSettings({ initial, initialTab, initialWarnings, hubUrl, canDelete = false }: { initial: ProjectData; initialTab?: string; initialWarnings: string[]; hubUrl: string; canDelete?: boolean }) {
+export function ProjectSettings({ initial, initialTab, initialWarnings, hubUrl, canDelete = false, mailConfigured = false }: { initial: ProjectData; initialTab?: string; initialWarnings: string[]; hubUrl: string; canDelete?: boolean; mailConfigured?: boolean }) {
   // Tab "Nguy hiểm" (xoá dự án) chỉ dành cho quản trị toàn hub.
   const TABS = canDelete ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "danger");
   const [project, setProject] = useState(initial);
@@ -87,6 +89,7 @@ export function ProjectSettings({ initial, initialTab, initialWarnings, hubUrl, 
       {tab === "mode" ? <ModeTab project={project} save={save} /> : null}
       {tab === "types" ? <TypesTab project={project} save={save} /> : null}
       {tab === "features" ? <FeaturesTab project={project} save={save} /> : null}
+      {tab === "notify" ? <NotifyTab project={project} save={save} mailConfigured={mailConfigured} /> : null}
       {tab === "theme" ? <ThemeTab project={project} save={save} warnings={warnings} /> : null}
       {tab === "keys" ? <KeysEmbedTab project={project} hubUrl={hubUrl} reloadKeys={reloadKeys} /> : null}
       {tab === "danger" && canDelete ? <DangerTab project={project} /> : null}

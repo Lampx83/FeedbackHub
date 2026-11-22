@@ -208,7 +208,7 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
                   <Row label="Phạm vi">{fb.scope === "system" ? "Toàn hệ thống" : "Một trang cụ thể"}</Row>
                   {fb.pagePath ? (
                     <Row label="Trang">
-                      {fb.pageUrl ? (
+                      {fb.pageUrl && /^https?:\/\//i.test(fb.pageUrl) ? (
                         <a href={fb.pageUrl} target="_blank" rel="noreferrer noopener" className="text-brand underline-offset-2 hover:underline">
                           {fb.pagePath}
                         </a>

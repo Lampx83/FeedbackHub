@@ -23,6 +23,8 @@ Hệ thống được tách ra từ DGXL (một ứng dụng nội bộ của t�
 | **AI làm nhưng không tự tung hoành** | Chế độ `collect` (chỉ thu nhận) hoặc `execute` (AI làm); giao `branch` (chờ duyệt) hoặc `deploy` (sao lưu → triển khai → kiểm tra → tự quay lui); duyệt kế hoạch trước khi sửa; **AI "báo xong" phải kèm chuỗi kiểm chứng được** mà worker tự tìm trong bản đang chạy |
 | **Người ở trong vòng lặp** | AI hỏi lại khi mơ hồ; người gửi **nghiệm thu "đúng ý / chưa đúng"** (máy không tự điền được); nút **Dừng** |
 | **Giao diện theo thương hiệu bạn** | Màu, bo góc, phông, vị trí, chữ, biểu tượng, chế độ tối; biến CSS `--fh-*` xuyên Shadow DOM |
+| **Một bảng điều khiển cho cả chục dự án** | **Tổng quan** (số liệu theo ngày, việc cần chú ý, dự án nào đang dồn việc), **chuông thông báo** khi có góp ý/lỗi mới, tìm dự án, duyệt góp ý trước khi tới AI |
+| **Nhiều người, nhiều dự án** | Tài khoản theo vai trò từng dự án (quản trị / chỉ xem), khoá chỉ đọc cho Claude Code của chủ dự án, **email + webhook chat** (Slack, Discord, Teams, Mattermost…) báo khi có góp ý mới |
 | **Tự lưu trữ, mã nguồn mở** | Docker Compose, dữ liệu ở máy bạn. Giấy phép MIT |
 
 ## Cách hoạt động
@@ -98,7 +100,7 @@ Mặc định dự án ở chế độ `collect`: chỉ thu nhận, người x�
 | `mcp/` | MCP server để Claude làm tay qua khoá operator |
 | `deploy/` | Mẫu Caddy/nginx, script sao lưu |
 | `docs/` | Tài liệu (dưới đây) |
-| `scripts/` | `mint-token.mjs` (ký token thử), `smoke.mjs` (kiểm thử đầu-cuối 49 bước) |
+| `scripts/` | `mint-token.mjs` (ký token thử), `smoke.mjs` (kiểm thử đầu-cuối hơn 160 bước) |
 
 ## Tài liệu
 

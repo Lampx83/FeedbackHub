@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { BASE_PATH } from "./base-path";
 import { authSecret } from "./env";
 import { fail } from "./http";
@@ -45,7 +45,18 @@ export async function currentAdmin() {
   }
 }
 
+/**
+ * Chặn yêu cầu do trang KHÁC gửi tới API quản trị. SameSite=Lax đã chặn khác trang web, nhưng "cùng site"
+ * (vd. một ứng dụng khác chạy ở tên miền con cùng gốc) vẫn mang cookie theo — nên kiểm thêm Sec-Fetch-Site.
+ * Trình duyệt không gửi header này (công cụ dòng lệnh, smoke) thì bỏ qua: chỉ trình duyệt mới bị CSRF.
+ */
+export async function isCrossSiteRequest(): Promise<boolean> {
+  const site = (await headers()).get("sec-fetch-site");
+  return Boolean(site) && site !== "same-origin" && site !== "none";
+}
+
 export async function requireAdminApi() {
+  if (await isCrossSiteRequest()) return { ok: false, response: fail(403, "Yêu cầu từ trang khác không được chấp nhận") } as const;
   const admin = await currentAdmin();
   return admin ? ({ ok: true, admin } as const) : ({ ok: false, response: fail(401, "Chưa đăng nhập") } as const);
 }

@@ -545,7 +545,7 @@ async function afterAgent({ id, prev, base, dirtyBefore, run }) {
 
   const protectedHit = [...changed].filter((f) => cfg.protectedPaths.some((p) => f === p || f.startsWith(p.endsWith("/") ? p : p + "/")));
   if (cfg.allowedPaths?.length) {
-    const out = [...changed].filter((f) => !cfg.allowedPaths.some((p) => f.startsWith(p)));
+    const out = [...changed].filter((f) => !cfg.allowedPaths.some((p) => f === p || f.startsWith(p.endsWith("/") ? p : p + "/")));
     if (out.length) {
       log(`CẢNH BÁO PHẠM VI: lượt chạy đụng vào tệp ngoài vùng cho phép: ${out.slice(0, 5).join(", ")}`);
       pendingFields.scopeViolation = out.slice(0, 20).join("\n").slice(0, 2000);

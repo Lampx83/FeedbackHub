@@ -24,6 +24,8 @@ model AdminUser {
   disabled           Boolean         @default(false)
   /// Phiên (JWT) cấp trước mốc này bị từ chối — đặt khi đổi/đặt lại mật khẩu để đăng xuất mọi nơi.
   sessionsValidAfter DateTime?
+  /// Lần cuối bấm "đã đọc" ở chuông thông báo; góp ý/trả lời mới hơn mốc này là chưa đọc.
+  notifSeenAt DateTime?
   memberships        ProjectMember[]
 }
 
@@ -50,6 +52,8 @@ model Project {
   slug    String          @unique
   name    String
   members ProjectMember[]
+  /// Thông báo ra ngoài khi có góp ý mới: { emails: string[], webhookUrl: string|null, on: "all"|"bugs"|"off" }.
+  notify Json?
 
   /// Khoá ký token người dùng (HS256), mã hoá AES-GCM bằng HUB_ENCRYPTION_KEY. Ứng dụng chủ
   /// giữ bản gốc để ký; hub cần bản gốc để kiểm chữ ký nên không thể chỉ lưu băm.

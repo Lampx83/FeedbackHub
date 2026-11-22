@@ -74,6 +74,8 @@ Gửi ẩn danh (dự án bật `anonymousSubmit`): bỏ header `Authorization`,
 
 Quản trị dự án thấy tất cả; người khác chỉ thấy của mình. Lọc: `status`, `kind`, `contentRef`. Trả `{ items, stats, isAdmin }` (`stats` = số góp ý theo trạng thái).
 
+Người không phải quản trị dự án nhận bản **đã lược** các trường vận hành nội bộ (`costUsd`, `agentRuns`, `claimedBy/At`, `scopeViolation`, `approvedBy`, `reporterEmail`, `rolledBack`, `stopRequestedAt`); quản trị dự án thấy đủ.
+
 `GET /feedback?summary=1` ⇒ `{ "awaitingIds": ["…"] }`: id các góp ý **của chính người gọi** đang chờ họ trả lời (để hiện số đỏ trên nút nổi).
 
 ### `GET /feedback/{id}` — chi tiết
@@ -87,8 +89,8 @@ Phải có **ít nhất một** trường:
 | Trường | Ai | Hiệu lực |
 |---|---|---|
 | `message` (chuỗi) | người gửi, quản trị | Thêm tin nhắn. Nếu đang `awaiting_user` ⇒ tự về `pending` |
-| `userVerdict` (`accepted`\|`rejected`) | người gửi, quản trị | Nghiệm thu. `rejected` ⇒ mở lại (`pending`) |
-| `planApproval` (`"approved"`) | người gửi, quản trị | Duyệt kế hoạch ⇒ `pending` |
+| `userVerdict` (`accepted`\|`rejected`) | **chỉ chính người gửi** | Nghiệm thu; chỉ khi góp ý `done` (`409` nếu chưa). `rejected` ⇒ mở lại (`pending`) |
+| `planApproval` (`"approved"`) | **chỉ chính người gửi** | Duyệt kế hoạch ⇒ `pending`; `409` nếu không có kế hoạch đang chờ duyệt |
 | `stop` (`true`) | người gửi, quản trị | Dừng. `409` nếu không còn `pending`/`reviewing` |
 | `status` | **chỉ quản trị dự án** | `pending`\|`reviewing`\|`awaiting_user`\|`done`\|`rejected` (không có `deploying`) |
 
@@ -195,4 +197,8 @@ Dự án không được gán trả **404** (như không tồn tại). Danh sác
 | `GET/POST /api/admin/keys` · `DELETE /api/admin/keys/{id}` | Khoá operator: liệt kê / cấp (chỉ quản trị toàn hub). `DELETE` thu hồi mọi khoá: khoá dự án do `manager` của dự án đó, khoá operator do quản trị toàn hub |
 | `GET /api/admin/feedback` · `GET/PATCH /api/admin/feedback/{id}` | Bảng góp ý (lọc `approval=approved\|pending`), chi tiết, trả lời/đổi trạng thái. `PATCH { approved: true\|false }` = duyệt / bỏ duyệt (cần quyền `manager`; ghi sự kiện `approval`, đặt `approvedAt`/`approvedBy`) |
 
-`PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý; `textSelection`: bật bong bóng "Góp ý đoạn này" khi bôi đen chữ; `selectionScope`: bộ chọn CSS giới hạn vùng bôi đen, ≤ 200 ký tự, không chứa `<` `>`; `requireApproval`: bật cổng duyệt cho khoá AI; `hidePaths`: tối đa 30 tiền tố đường dẫn bắt đầu bằng `/` mà widget ẩn mọi lối vào), `theme`, `webhookUrl`. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.
+| `GET /api/admin/stats?days=30&project=<slug>` | Số liệu cho **Tổng quan** (`days` 7–180): `kpi` (đang mở, chờ người gửi, lỗi đang mở, mới tạo so kỳ trước, đã xong, thời gian xử lý trung bình, chờ duyệt), `series` theo ngày (giờ Việt Nam), `byStatus`, `byKind`, `byProject`, `attention`, `recent`. Luôn ràng theo dự án được phép; câu hỏi thuần không tính vào việc đang mở |
+| `GET /api/admin/notifications` · `POST …/notifications/seen` | Chuông thông báo: góp ý mới + trả lời của người gửi (30 ngày), kèm số chưa đọc; `seen` đánh dấu đã đọc cho tài khoản |
+| `POST /api/admin/projects/{slug}/notify-test` | Gửi thử email/webhook theo cấu hình thông báo của dự án (`manager`; 6 lần/5 phút) |
+
+`PATCH /api/admin/projects/{slug}` nhận (đều tuỳ chọn): `name`, `allowedOrigins` (URL hoặc `"*"`), `submitRoles`, `adminRoles`, `anonymousSubmit`, `mode`, `deliver`, `types`, `features` (gồm `screenshot`: `off` | `optional` | `default` — ảnh chụp trang kèm góp ý; `textSelection`: bật bong bóng "Góp ý đoạn này" khi bôi đen chữ; `selectionScope`: bộ chọn CSS giới hạn vùng bôi đen, ≤ 200 ký tự, không chứa `<` `>`; `requireApproval`: bật cổng duyệt cho khoá AI; `hidePaths`: tối đa 30 tiền tố đường dẫn bắt đầu bằng `/` mà widget ẩn mọi lối vào), `theme`, `webhookUrl` (webhook ký HMAC cũ; địa chỉ nội bộ chỉ quản trị toàn hub đặt được), `notify` (`{ on: "all"|"bugs"|"off", emails: [≤10], webhookUrl: https công cộng | null }` — thông báo khi có góp ý mới/trả lời; webhook nhận `text`, `content` cho Slack/Mattermost/Teams/Discord và các trường có cấu trúc). Email cần `HUB_SMTP_URL` ở máy chủ. `theme` được kiểm nghiêm ([THEMING.md](THEMING.md)); phản hồi kèm `warnings` nếu tương phản màu dưới 4,5:1.

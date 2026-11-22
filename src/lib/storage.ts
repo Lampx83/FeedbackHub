@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { dataDir } from "./env";
 
@@ -37,4 +37,12 @@ export async function readStored(rel: string): Promise<Buffer> {
   // Chặn đường dẫn thoát khỏi thư mục dữ liệu (nếu DB bị sửa tay).
   if (!abs.startsWith(root + path.sep)) throw new Error("Đường dẫn tệp không hợp lệ");
   return readFile(abs);
+}
+
+/** Xoá toàn bộ tệp của một dự án (khi xoá dự án) — không để dữ liệu người dùng mồ côi trên đĩa. */
+export async function removeProjectFiles(projectSlug: string) {
+  const root = path.resolve(dataDir());
+  const abs = path.resolve(root, projectSlug);
+  if (!projectSlug || projectSlug.includes("..") || !abs.startsWith(root + path.sep)) return;
+  await rm(abs, { recursive: true, force: true }).catch(() => {});
 }

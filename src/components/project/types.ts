@@ -16,6 +16,7 @@ export type ProjectData = {
   features: Features;
   theme: Theme;
   webhookUrl: string | null;
+  notify: { emails: string[]; webhookUrl: string | null; on: "all" | "bugs" | "off" };
   workerSeenAt: string | null;
   keys: KeyRow[];
   feedbackCount: number;

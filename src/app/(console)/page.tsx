@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { OPEN_STATUSES } from "@/lib/status";
+import { Dashboard } from "@/components/Dashboard";
 import { ProjectGrid } from "@/components/ProjectGrid";
 import { projectFilter, projectScope } from "@/lib/admin-access";
 import { requireAdminPage } from "./auth";
@@ -25,6 +26,8 @@ export default async function OverviewPage() {
   ]);
   const openById = new Map(open.map((o) => [o.projectId, o._count._all]));
   return (
+    <>
+    <Dashboard projects={projects.map((p) => ({ slug: p.slug, name: p.name }))} />
     <ProjectGrid
       total={total}
       canCreate={admin.superAdmin}
@@ -37,5 +40,6 @@ export default async function OverviewPage() {
         openCount: openById.get(p.id) ?? 0,
       }))}
     />
+    </>
   );
 }

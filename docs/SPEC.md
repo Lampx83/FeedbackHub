@@ -181,6 +181,10 @@ Mọi route `/api/admin/**` kiểm quyền theo dự án (xem [API.md §3](API.m
 
 Mỗi góp ý có `approvedAt`/`approvedBy`, do **quản trị dự án** (`manager` hoặc quản trị toàn hub) đặt qua `PATCH /api/admin/feedback/{id} { approved }` — ghi sự kiện `approval`. Dự án bật `features.requireApproval` thì khoá worker/reader (AI) **chỉ thấy góp ý đã duyệt**; góp ý chưa duyệt — nội dung không đáng tin — không bao giờ tới AI (chặn ở `machineFeedback`, hàng đợi và danh sách). Duyệt độc lập với trạng thái xử lý; máy không đặt được. Mặc định tắt.
 
+### 5.3d Thông báo & tổng quan
+
+Mỗi dự án có `notify = { on, emails, webhookUrl }`. Khi có góp ý mới (nguồn khác `system`/`import`) hoặc người gửi nhắn thêm, hub báo cho người phụ trách qua email (SMTP của máy chủ, văn bản thuần) và/hoặc webhook chat (HTTPS công cộng, nội dung đã thoát `&<>`); `on=bugs` chỉ báo loại `bug`, `off` tắt cả hai. Lỗi gửi **không** làm hỏng thao tác chính. Chuông trong bảng điều khiển không phụ thuộc cấu hình này: nó tính thẳng từ góp ý/tin nhắn trong phạm vi dự án của tài khoản, "đã đọc" lưu theo tài khoản (`notifSeenAt`). Trang **Tổng quan** (`GET /api/admin/stats`) tổng hợp cùng phạm vi đó. Cả hai không bao giờ lộ dữ liệu của dự án tài khoản không được gán.
+
 ### 5.4 Khoá máy
 
 | Khoá | Tiền tố | Phạm vi |

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { api } from "./api";
+import { NotificationBell } from "./NotificationBell";
 
 const NAV: readonly { href: string; label: string; icon: string; superOnly?: boolean }[] = [
   { href: "/", label: "Tổng quan", icon: "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V11z" },
@@ -11,6 +12,19 @@ const NAV: readonly { href: string; label: string; icon: string; superOnly?: boo
   { href: "/keys", label: "Khoá operator", icon: "M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.9-1.9A4 4 0 0 1 15 7z", superOnly: true },
   { href: "/users", label: "Tài khoản", icon: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1", superOnly: true },
 ];
+
+/** md trở lên (khớp breakpoint của Tailwind) — để chỉ gắn MỘT chuông thông báo, không để hai bản cùng gọi API. */
+function useIsDesktop() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia("(min-width: 768px)");
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia("(min-width: 768px)").matches,
+    () => false,
+  );
+}
 
 function isActive(path: string, href: string) {
   return href === "/" ? path === "/" || path.startsWith("/projects") : path.startsWith(href);
@@ -28,6 +42,7 @@ export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { 
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const desktop = useIsDesktop();
 
   async function logout() {
     await api("/api/admin/logout", { method: "POST", body: {} });
@@ -73,17 +88,23 @@ export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { 
       {/* Thanh đầu trang trên điện thoại */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-2.5 md:hidden">
         <span className="font-semibold">Feedback Hub</span>
+        <span className="flex items-center gap-1">
+        {desktop ? null : <NotificationBell />}
         <button type="button" aria-label="Mở menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="rounded-md p-1.5 hover:bg-surface-2">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d={open ? "M6 6l12 12M18 6L6 18" : "M4 7h16M4 12h16M4 17h16"} />
           </svg>
         </button>
+        </span>
       </div>
       {open ? <div className="border-b border-line bg-surface md:hidden">{nav}</div> : null}
 
       {/* Thanh bên trên máy tính */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
-        <div className="px-5 py-4 text-base font-semibold tracking-tight">Feedback Hub</div>
+        <div className="flex items-center justify-between px-5 py-3 text-base font-semibold tracking-tight">
+          Feedback Hub
+          {desktop ? <NotificationBell /> : null}
+        </div>
         {nav}
       </aside>
 

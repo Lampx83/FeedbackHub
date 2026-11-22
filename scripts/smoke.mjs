@@ -391,6 +391,59 @@ try {
   ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie, body: { approved: false } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 403, "bỏ duyệt thì AI lại không thấy");
   ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { requireApproval: false } } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 200, "tắt cổng duyệt thì hành vi trở lại như cũ");
 
+  // ── thông báo: chuông trong bảng điều khiển + cấu hình email/webhook ──
+  const feed0 = await call("GET", "/api/admin/notifications", { cookie });
+  ok(feed0.status === 200 && Array.isArray(feed0.data.items) && typeof feed0.data.unread === "number", "chuông thông báo trả danh sách + số chưa đọc");
+  await call("POST", "/api/admin/notifications/seen", { cookie, body: {} });
+  ok((await call("GET", "/api/admin/notifications", { cookie })).data.unread === 0, "đánh dấu đã đọc → chưa đọc = 0");
+  const nf = await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Báo lỗi để thử chuông thông báo", type: curTypes[0].id } });
+  const feed1 = await call("GET", "/api/admin/notifications", { cookie });
+  ok(nf.status === 200 && feed1.data.unread >= 1 && feed1.data.items.some((i) => i.id === nf.data.feedback?.id && i.type === "new" && i.unread), "góp ý mới xuất hiện ở chuông và tính là chưa đọc", JSON.stringify(nf.data).slice(0, 100));
+  const feedO = await call("GET", "/api/admin/notifications", { cookie: O.cookie });
+  ok(feedO.status === 200 && feedO.data.items.every((i) => i.project.slug === slugB), "chuông của người thường chỉ có dự án được gán");
+  const feedV = await call("GET", "/api/admin/notifications", { cookie: V.cookie });
+  ok(feedV.status === 200 && feedV.data.items.every((i) => i.project.slug === slug), "chuông của người chỉ xem chỉ có dự án được gán");
+  ok((await call("GET", "/api/admin/notifications")).status === 401, "chuông cần đăng nhập");
+  await call("POST", "/api/admin/notifications/seen", { cookie, body: {} });
+
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { notify: { on: "all", emails: ["khong-phai-email"], webhookUrl: null } } })).status === 400, "email thông báo sai định dạng bị từ chối");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { notify: { on: "all", emails: [], webhookUrl: "http://127.0.0.1:9/x" } } })).status === 400, "webhook thông báo http/nội bộ bị từ chối (SSRF)");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { notify: { on: "all", emails: [], webhookUrl: "https://169.254.169.254/latest" } } })).status === 400, "webhook trỏ tới địa chỉ metadata bị từ chối");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { notify: { on: "bugs", emails: ["Nguoi.Nhan@Example.com"], webhookUrl: null } } })).status === 200, "lưu cấu hình thông báo");
+  const pn = await call("GET", `/api/admin/projects/${slug}`, { cookie });
+  ok(pn.data.notify?.on === "bugs" && pn.data.notify.emails[0] === "nguoi.nhan@example.com" && typeof pn.data.mailConfigured === "boolean", "đọc lại cấu hình thông báo (email chuẩn hoá chữ thường)");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: V.cookie, body: { notify: { on: "off", emails: [], webhookUrl: null } } })).status === 403, "người chỉ xem không sửa được cấu hình thông báo");
+  ok((await call("POST", `/api/admin/projects/${slug}/notify-test`, { cookie: V.cookie, body: {} })).status === 403, "người chỉ xem không gửi thử (403)");
+  ok((await call("POST", `/api/admin/projects/${slug}/notify-test`, { cookie: O.cookie, body: {} })).status === 404, "quản trị dự án khác không gửi thử dự án này (404)");
+  const nt = await call("POST", `/api/admin/projects/${slug}/notify-test`, { cookie, body: {} });
+  ok(nt.status === 200 && typeof nt.data.result?.email === "string", "gửi thử trả kết quả từng kênh", JSON.stringify(nt.data).slice(0, 120));
+
+  // ── rà soát bảo mật ───────────────────────────────────────────────────────
+  ok((await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Địa chỉ trang giả mạo", pageUrl: "javascript:alert(1)", source: "widget" } })).status === 400, "pageUrl không phải http(s) bị từ chối");
+  ok((await call("GET", "/api/admin/me", { cookie, headers: { "Sec-Fetch-Site": "same-site" } })).status === 403, "API quản trị từ trang cùng-site khác (CSRF) bị chặn");
+  ok((await call("GET", "/api/admin/me", { cookie, headers: { "Sec-Fetch-Site": "cross-site" } })).status === 403, "API quản trị từ trang khác site bị chặn");
+  ok((await call("GET", "/api/admin/me", { cookie, headers: { "Sec-Fetch-Site": "same-origin" } })).status === 200, "API quản trị từ chính giao diện vẫn chạy");
+  const hdr = await call("GET", "/api/admin/me", { cookie });
+  ok(/DENY/i.test(hdr.res.headers.get("x-frame-options") ?? "") && /frame-ancestors 'none'/.test(hdr.res.headers.get("content-security-policy") ?? ""), "chống nhúng khung (clickjacking)");
+  const own = await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Góp ý để thử nghiệm thu chéo", source: "widget" } });
+  const ownId = own.data.feedback.id;
+  ok(own.data.feedback.costUsd === undefined && own.data.feedback.claimedBy === undefined && own.data.feedback.reporterEmail === undefined, "người gửi không thấy trường vận hành nội bộ");
+  await call("POST", `/api/v1/machine/feedback/${ownId}/claim`, { key: op.data.key });
+  await call("POST", `/api/v1/machine/feedback/${ownId}/transition`, { key: op.data.key, body: { to: "done", note: "xong" } });
+  const forgedAdmin = await call("PATCH", `/api/v1/feedback/${ownId}`, { token: admin, body: { userVerdict: "accepted" } });
+  ok(forgedAdmin.status === 403, "quản trị khác không nghiệm thu thay người gửi", `status ${forgedAdmin.status}`);
+  const early = await call("PATCH", `/api/v1/feedback/${id}`, { token: staff, body: { userVerdict: "accepted" } });
+  ok(early.status === 409 || early.status === 200, "nghiệm thu chỉ khi đã hoàn thành (không lỗi 5xx)");
+  const planBad = await call("PATCH", `/api/v1/feedback/${ownId}`, { token: staff, body: { planApproval: "approved" } });
+  ok(planBad.status === 409, "duyệt kế hoạch khi không có kế hoạch chờ duyệt bị từ chối");
+  await call("PATCH", `/api/admin/users/${mid}`, { cookie, body: { memberships: [{ slug, role: "manager" }] } });
+  const mw = await call("PATCH", `/api/admin/projects/${slug}`, { cookie: M3, body: { webhookUrl: "http://127.0.0.1:9/hook" } });
+  ok(mw.status === 400, "quản trị dự án không đặt được webhook nội bộ (SSRF)", JSON.stringify(mw.data));
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { webhookUrl: "http://127.0.0.1:9/hook" } })).status === 200, "quản trị toàn hub đặt được webhook nội bộ (DGXL cần)");
+  await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { webhookUrl: null } });
+  const big = await fetch(HUB + "/api/v1/feedback", { method: "POST", headers: { Authorization: `Bearer ${staff}`, "Content-Type": "application/json" }, body: JSON.stringify({ title: "x".repeat(4), body: "y".repeat(3 * 1024 * 1024) }) });
+  ok(big.status === 413 || big.status === 400, "thân yêu cầu quá lớn bị từ chối", String(big.status));
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);

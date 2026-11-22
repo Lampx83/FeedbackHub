@@ -26,7 +26,7 @@ export function ProjectGrid({ projects, total, canCreate = true }: { projects: P
   return (
     <>
       <PageHeader
-        title="Tổng quan"
+        title="Dự án"
         description={`Mỗi thẻ là một ứng dụng đang dùng hub để thu góp ý. Hiện có ${projects.length} dự án và ${total} góp ý. Số "đang mở" không tính câu hỏi thuần.`}
       />
       <Toolbar left={<SearchInput value={q} onChange={setQ} placeholder="Tìm dự án theo tên hoặc mã…" />} right={canCreate ? <AddButton onClick={() => setAdding(true)}>Thêm dự án</AddButton> : undefined} />

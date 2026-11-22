@@ -23,6 +23,8 @@ It was extracted from DGXL (an internal app by the author), where this loop has 
 | **AI acts, but not unchecked** | `collect` (record only) or `execute` (AI does the work); deliver as `branch` (awaits review) or `deploy` (backup → deploy → health check → auto-rollback); plan approval before edits; **AI's "done" must come with a verifiable string** the worker greps for in the running build |
 | **Humans stay in the loop** | AI asks back when ambiguous; the submitter **accepts "correct / not quite"** (machines cannot fill this in); a **Stop** button |
 | **Matches your brand** | Colours, radius, font, position, labels, icon, dark mode; `--fh-*` CSS variables pierce the Shadow DOM |
+| **One console for dozens of projects** | **Overview** dashboard (daily trends, what needs attention, which project is piling up), a **notification bell** for new feedback and bugs, project search, an approval step before anything reaches the AI |
+| **Many people, many projects** | Per-project roles (manager / viewer), read-only keys for a project owner's Claude Code, **email + chat webhooks** (Slack, Discord, Teams, Mattermost…) on new feedback |
 | **Self-hosted, open source** | Docker Compose, data stays with you. MIT licence |
 
 ## How it works
@@ -98,7 +100,7 @@ Read [docs/OPERATIONS.md](docs/OPERATIONS.md) and [docs/SECURITY.md](docs/SECURI
 | `mcp/` | MCP server so Claude can work by hand with an operator key |
 | `deploy/` | Caddy/nginx samples, backup script |
 | `docs/` | Documentation (Vietnamese) |
-| `scripts/` | `mint-token.mjs` (sign a test token), `smoke.mjs` (49-step end-to-end test) |
+| `scripts/` | `mint-token.mjs` (sign a test token), `smoke.mjs` (160+ step end-to-end test) |
 
 > The detailed documentation is currently in Vietnamese; the API reference ([docs/API.md](docs/API.md)) and code samples are language-neutral. Translations are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 

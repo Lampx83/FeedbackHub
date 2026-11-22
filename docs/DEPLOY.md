@@ -34,6 +34,9 @@ openssl rand -base64 32     # → HUB_ENCRYPTION_KEY
 | `HUB_PUBLIC_URL` | nên | Địa chỉ công khai có `https://` (kèm tiền tố nếu có), để in đúng đoạn mã nhúng |
 | `HUB_BASE_PATH` | | Tiền tố khi chạy dưới đường dẫn con, vd. `/feedbackhub`. Đặt LÚC BUILD |
 | `HUB_PORT` | | Cổng trên máy chủ (mặc định `3100`, chỉ mở cho `127.0.0.1`) |
+| `HUB_SMTP_URL`, `HUB_MAIL_FROM` | | SMTP để gửi **email thông báo** khi có góp ý mới/trả lời (vd. `smtps://user:pass@smtp.example.com:465`). Không đặt thì chỉ có chuông trong bảng điều khiển và webhook chat |
+| `HUB_TRUSTED_PROXY_HOPS` | | Số proxy tin cậy trước hub (mặc định `1`: nginx/Caddy). Dùng để lấy đúng IP máy khách cho giới hạn tần suất; **đặt thấp hơn thực tế ⇒ mọi người dùng chung một bộ đếm, cao hơn ⇒ IP giả mạo được**. Không proxy: `0` |
+| `HUB_ALLOW_PRIVATE_WEBHOOKS` | | `1` = cho webhook thông báo trỏ tới địa chỉ nội bộ hoặc `http://`. Mặc định chỉ `https` công cộng (chống SSRF) |
 
 Chạy:
 

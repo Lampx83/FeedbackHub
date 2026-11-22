@@ -9,6 +9,10 @@ export async function readBody<S extends ZodType>(
   req: Request,
   schema: S,
 ): Promise<{ ok: true; value: z.infer<S> } | { ok: false; response: NextResponse }> {
+  // Chặn thân yêu cầu quá lớn trước khi đọc vào bộ nhớ (trần 2 MB; tệp đính kèm đi đường multipart riêng).
+  if (Number(req.headers.get("content-length") ?? 0) > 2 * 1024 * 1024) {
+    return { ok: false, response: fail(413, "Nội dung gửi lên quá lớn") };
+  }
   let raw: unknown;
   try {
     raw = await req.json();

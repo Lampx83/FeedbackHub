@@ -1,6 +1,6 @@
 import { authenticateUser, canSubmit, isProjectAdmin } from "@/lib/auth-user";
 import { preflight, withCors } from "@/lib/cors";
-import { addMessage, canSeeFeedback, transition } from "@/lib/feedback";
+import { addMessage, canSeeFeedback, forEndUser, transition } from "@/lib/feedback";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { HUMAN_SETTABLE } from "@/lib/status";
@@ -26,7 +26,8 @@ export async function GET(req: Request, { params }: Ctx) {
   if (!fb || fb.projectId !== project.id) return cors(fail(404, "Không tìm thấy góp ý"));
   if (!canSeeFeedback(fb, project, a.user)) return cors(fail(403, "Bạn không có quyền xem góp ý này"));
   const { attachments, ...feedback } = fb;
-  return cors(json({ feedback, attachments }));
+  const admin = isProjectAdmin(project, a.user!);
+  return cors(json({ feedback: admin ? feedback : forEndUser(feedback), attachments }));
 }
 
 const patchSchema = z
@@ -74,6 +75,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
     return cors(fail(403, "Vai trò của bạn không được phép"));
   }
 
+  // Nghiệm thu và duyệt kế hoạch là phán quyết của CHÍNH người gửi — quản trị viên khác không nói thay được.
+  if ((v.userVerdict || v.planApproval) && fb.reporterId !== user.uid) {
+    return cors(fail(403, "Chỉ người gửi góp ý mới nghiệm thu hoặc duyệt kế hoạch"));
+  }
+  if (v.userVerdict && fb.status !== "done") return cors(fail(409, "Chỉ nghiệm thu được khi góp ý đã hoàn thành"));
+  if (v.planApproval && fb.planApproval !== "requested") return cors(fail(409, "Góp ý này không có kế hoạch đang chờ duyệt"));
+
   if (v.stop) {
     if (fb.kind === "question" || !["pending", "reviewing"].includes(fb.status)) {
       return cors(fail(409, "Góp ý này không còn đang chạy để dừng"));
@@ -115,7 +123,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       },
       ...(message ? { message: { role, authorName: user.name, body: message } } : {}),
     });
-    return cors(json({ ok: true, feedback: updated }));
+    return cors(json({ ok: true, feedback: admin ? updated : forEndUser(updated) }));
   }
   // Không đổi trạng thái: chỉ nhắn tin và/hoặc nghiệm thu "đúng ý".
   if (v.userVerdict) {

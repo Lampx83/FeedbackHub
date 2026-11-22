@@ -3,6 +3,7 @@
  * `transition()` để Event và webhook không bao giờ bị bỏ sót (DGXL từng phải dùng trigger DB vì
  * agent ghi thẳng bằng SQL; ở hub agent chỉ gọi API nên chặn được ở đây).
  */
+import { notifyExternal } from "./notify";
 import type { Feedback, Prisma, Project } from "@prisma/client";
 import { decrypt, hmacHex } from "./crypto";
 import type { HubUser } from "./auth-user";
@@ -97,6 +98,8 @@ export async function createFeedback(project: Project, reporter: Reporter, input
       events: { create: { kind: "created", toStatus: "pending", actor: "human" } },
     },
   });
+  // Báo cho người phụ trách (email/webhook theo cấu hình dự án). Máy tự lập (source=system|import) thì không báo.
+  if (fb.source !== "system" && fb.source !== "import") notifyExternal(project, fb, "new");
   return fb;
 }
 
@@ -178,6 +181,7 @@ export async function addMessage(
   // Chạm updatedAt để widget đang mở biết có nội dung mới mà tải lại luồng.
   const updated = await prisma.feedback.update({ where: { id: fb.id }, data: { updatedAt: new Date() } });
   if (m.role !== "user" && (m.kind ?? "chat") === "chat") dispatchWebhook(project, "feedback.reply", updated, m);
+  if (m.role === "user" && (m.kind ?? "chat") === "chat") notifyExternal(project, updated, "reply");
   return msg;
 }
 
@@ -221,9 +225,10 @@ export function dispatchWebhook(
           "X-Hub-Signature": `sha256=${hmacHex(decrypt(project.signingSecretEnc), body)}`,
         },
         body,
+        redirect: "manual",
         signal: AbortSignal.timeout(8000),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (res.status >= 300) throw new Error(`HTTP ${res.status}`);
     } catch (e) {
       await prisma.event
         .create({ data: { feedbackId: fb.id, kind: "webhook_fail", actor: "system", detail: { event, error: String(e).slice(0, 300) } } })
@@ -234,3 +239,15 @@ export function dispatchWebhook(
 
 export const canSeeFeedback = (fb: Feedback, project: Project, user: HubUser | null) =>
   !!user && (fb.reporterId === user.uid || (!!user.role && project.adminRoles.includes(user.role)));
+
+const INTERNAL_FIELDS = [
+  "approvedBy", "claimedBy", "claimedAt", "costUsd", "agentRuns", "scopeViolation", "rolledBack",
+  "reporterEmail", "stopRequestedAt",
+] as const;
+
+/** Bỏ các trường vận hành nội bộ (chi phí, ai đang giữ việc, email…) trước khi trả cho người gửi thường. */
+export function forEndUser<T extends object>(fb: T): Omit<T, (typeof INTERNAL_FIELDS)[number]> {
+  const out = { ...fb } as Record<string, unknown>;
+  for (const k of INTERNAL_FIELDS) delete out[k];
+  return out as Omit<T, (typeof INTERNAL_FIELDS)[number]>;
+}

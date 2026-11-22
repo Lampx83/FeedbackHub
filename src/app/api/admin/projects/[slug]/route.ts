@@ -2,7 +2,10 @@ import { z } from "zod";
 import { requireProjectApi, requireSuperApi } from "@/lib/admin-access";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { removeProjectFiles } from "@/lib/storage";
 import { contrastWarnings, parseTheme } from "@/lib/theme";
+import { mailConfigured, projectNotify } from "@/lib/notify";
+import { assertPublicHttpUrl } from "@/lib/safe-url";
 
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ slug: string }> };
@@ -23,7 +26,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   void signingSecretEnc;
   // Người chỉ xem không cần (và không được) thấy danh sách khoá của dự án.
   if (a.role === "viewer") rest.keys = [];
-  return json({ myRole: a.role, project: rest, warnings: contrastWarnings(parseTheme(p.theme).ok ? (p.theme as never) : {}) });
+  return json({ myRole: a.role, notify: projectNotify(p), mailConfigured: mailConfigured(), project: rest, warnings: contrastWarnings(parseTheme(p.theme).ok ? (p.theme as never) : {}) });
 }
 
 const patch = z
@@ -49,6 +52,11 @@ const patch = z
     }).partial(),
     theme: z.unknown(),
     webhookUrl: z.string().url().nullable(),
+    notify: z.object({
+      emails: z.array(z.string().trim().toLowerCase().email().max(200)).max(10),
+      webhookUrl: z.string().trim().url().max(500).nullable(),
+      on: z.enum(["all", "bugs", "off"]),
+    }),
   })
   .partial();
 
@@ -58,7 +66,14 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!a.ok) return a.response;
   const body = await readBody(req, patch);
   if (!body.ok) return body.response;
-  const { theme, features, ...rest } = body.value;
+  const { theme, features, notify, ...rest } = body.value;
+  if (notify?.webhookUrl) {
+    try {
+      await assertPublicHttpUrl(notify.webhookUrl);
+    } catch (e) {
+      return fail(400, `Webhook thông báo: ${(e as Error).message}`);
+    }
+  }
   let themeOut: object | undefined;
   if (theme !== undefined) {
     const t = parseTheme(theme);
@@ -67,11 +82,21 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
   const current = await prisma.project.findUnique({ where: { slug } });
   if (!current) return fail(404, "Không có dự án này");
+  // Webhook cũ (ký HMAC): chỉ quản trị toàn hub được trỏ vào địa chỉ nội bộ (vd. DGXL gọi dịch vụ trong mạng);
+  // quản trị dự án phải dùng https công cộng — nếu không, hub bị lợi dụng để dò/gọi dịch vụ nội bộ (SSRF).
+  if (rest.webhookUrl && !a.admin.superAdmin && rest.webhookUrl !== current.webhookUrl) {
+    try {
+      await assertPublicHttpUrl(rest.webhookUrl);
+    } catch (e) {
+      return fail(400, `Webhook: ${(e as Error).message}`);
+    }
+  }
   const p = await prisma.project.update({
     where: { slug },
     data: {
       ...rest,
       ...(themeOut ? { theme: themeOut } : {}),
+      ...(notify ? { notify } : {}),
       ...(features ? { features: { ...(current.features as object), ...features } } : {}),
     },
   });
@@ -87,5 +112,6 @@ export async function DELETE(req: Request, { params }: Ctx) {
   if (!body.ok) return body.response;
   if (body.value.confirm !== slug) return fail(400, "Mã xác nhận không khớp");
   await prisma.project.delete({ where: { slug } });
+  await removeProjectFiles(slug);
   return json({ ok: true });
 }

@@ -2,7 +2,7 @@ import { authenticateUser, canSubmit, isProjectAdmin } from "@/lib/auth-user";
 import { originAllowed, preflight, withCors } from "@/lib/cors";
 import { hmacHex } from "@/lib/crypto";
 import { authSecret } from "@/lib/env";
-import { createFeedback, findDuplicate, fromUser } from "@/lib/feedback";
+import { createFeedback, findDuplicate, forEndUser, fromUser } from "@/lib/feedback";
 import { fail, json, readBody } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { projectFeatures, projectTypes } from "@/lib/project-config";
@@ -22,7 +22,12 @@ const createSchema = z.object({
   /** Chỉ nhận đường dẫn nội bộ để không ai nhét URL ngoài vào ngữ cảnh mà AI sẽ đọc. */
   // Chỉ đường dẫn NỘI BỘ: bắt đầu bằng một dấu "/" (không phải "//" — URL tương đối giao thức), không khoảng trắng/ký tự điều khiển/ngoặc nhọn/dấu nháy.
   pagePath: z.string().max(200).regex(/^\/(?!\/)[^\s<>"'`\\]*$/u, "Đường dẫn không hợp lệ").optional(),
-  pageUrl: z.string().url().max(500).optional(),
+  pageUrl: z
+    .string()
+    .url()
+    .max(500)
+    .refine((u) => /^https?:\/\//i.test(u), "pageUrl phải là http(s)")
+    .optional(),
   scope: z.enum(["page", "system"]).default("page"),
   pageTarget: z.string().max(500).optional(),
   suggestion: z.object({ before: z.string().max(2000), after: z.string().max(2000) }).optional(),
@@ -87,7 +92,7 @@ export async function GET(req: Request) {
   ]);
   const stats: Record<string, number> = {};
   for (const g of grouped) stats[g.status] = g._count._all;
-  return withCors(req, project.allowedOrigins, json({ items, stats, isAdmin: admin }));
+  return withCors(req, project.allowedOrigins, json({ items: admin ? items : items.map(forEndUser), stats, isAdmin: admin }));
 }
 
 export async function POST(req: Request) {
@@ -167,5 +172,5 @@ export async function POST(req: Request) {
     aiProvider: v.aiProvider,
     aiModel: v.aiModel,
   });
-  return cors(json({ ok: true, feedback: fb }));
+  return cors(json({ ok: true, feedback: forEndUser(fb) }));
 }

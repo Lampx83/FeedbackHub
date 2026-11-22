@@ -3,6 +3,7 @@ import { preflight, withCors } from "@/lib/cors";
 import { canSeeFeedback } from "@/lib/feedback";
 import { fail, json } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { clientIp, rateLimit } from "@/lib/rate";
 import { ALLOWED_MIME, MAX_BYTES, MAX_FILES_PER_FEEDBACK, saveFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -22,6 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ? canSeeFeedback(fb, project, a.user)
     : fb.reporterId.startsWith("anon:") && Date.now() - fb.createdAt.getTime() < 10 * 60_000;
   if (!allowed) return cors(fail(403, "Bạn không có quyền đính kèm vào góp ý này"));
+  if (!rateLimit(`attach:${project.id}:${a.user?.uid ?? clientIp(req)}`, 40, 10 * 60_000)) return cors(fail(429, "Tải lên quá nhanh, vui lòng đợi ít phút"));
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
