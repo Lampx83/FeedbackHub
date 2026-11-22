@@ -46,14 +46,14 @@
     sel_btn: "Góp ý đoạn này",
     sel_body: "Về đoạn: «{text}»",
     close: "Đóng",
-    at_page: "📍 Đang ở trang {path}",
-    scope_page: "📍 Trang này",
-    scope_system: "🌐 Toàn hệ thống",
+    at_page: "Đang ở trang {path}",
+    scope_page: "Trang này",
+    scope_system: "Toàn hệ thống",
     scope_label: "Phạm vi góp ý",
-    pick: "🎯 Chỉ chỗ cần sửa bằng chuột",
+    pick: "Chỉ chỗ cần sửa bằng chuột",
     picked: "Đã chỉ: {label}",
     unpick: "Bỏ chọn",
-    pick_banner: "🎯 Bấm vào chỗ cần sửa",
+    pick_banner: "Bấm vào chỗ cần sửa",
     pick_esc: "Esc để huỷ",
     type_label: "Loại góp ý",
     model_label: "Mô hình sẽ thực hiện góp ý này",
@@ -68,38 +68,38 @@
     plan_check: "Cho tôi duyệt kế hoạch trước khi AI sửa",
     mic_start: "Nói thay vì gõ",
     mic_stop: "Đang nghe, bấm để dừng",
-    attach: "📎 Đính kèm tệp",
-    shot_label: "📸 Đính kèm ảnh chụp trang này",
+    attach: "Đính kèm tệp",
+    shot_label: "Đính kèm ảnh chụp trang này",
     shot_hint: "",
     shot_busy: "Đang chụp trang…",
     shot_fail: "Không chụp được ảnh — góp ý vẫn được gửi kèm đường dẫn trang.",
     shot_retake: "Chụp lại",
     remove: "Bỏ {name}",
     offer: "Bạn đang bôi đen: «{text}»",
-    offer_btn: "✏️ Sửa chữ này",
+    offer_btn: "Sửa chữ này",
     before_label: "Chữ hiện tại",
     after_label: "Sửa thành",
     suggest_title: "Sửa chữ: «{text}»",
     anon_name: "Tên của bạn (tuỳ chọn)",
     anon_email: "Email để liên hệ (tuỳ chọn)",
-    submit_ai: "📨 Gửi tới AI",
-    submit: "📨 Gửi góp ý",
+    submit_ai: "Gửi tới AI",
+    submit: "Gửi góp ý",
     sending: "Đang gửi…",
     uploading: "Đang tải tệp {i}/{n}…",
-    sent_ai: "✓ Đã gửi — AI sẽ nhận trong khoảng 1 phút.",
-    sent: "✓ Đã gửi. Cảm ơn bạn đã góp ý!",
-    sent_fail: "⚠️ Đã gửi góp ý, nhưng không tải được: {names}",
-    err_title: "⚠️ Tiêu đề tối thiểu 4 ký tự",
-    err_email: "⚠️ Email chưa đúng dạng",
-    err_network: "⚠️ Lỗi mạng, vui lòng thử lại",
-    err_400: "⚠️ Nội dung chưa hợp lệ: {detail}",
-    err_401: "⚠️ Phiên đăng nhập đã hết hạn — hãy tải lại trang rồi thử lại",
-    err_403: "⚠️ Bạn chưa được phép thực hiện thao tác này",
-    err_409: "⚠️ Thao tác này không còn áp dụng được cho góp ý hiện tại",
-    err_429: "⚠️ Bạn gửi quá nhanh, vui lòng thử lại sau ít phút",
-    err_other: "⚠️ Không thực hiện được (mã lỗi {code})",
-    file_big: "⚠️ Tệp «{name}» lớn hơn 10 MB nên bị bỏ qua",
-    file_many: "⚠️ Mỗi góp ý tối đa 12 tệp",
+    sent_ai: "Đã gửi — AI sẽ nhận trong khoảng 1 phút.",
+    sent: "Đã gửi. Cảm ơn bạn đã góp ý!",
+    sent_fail: "Đã gửi góp ý, nhưng không tải được: {names}",
+    err_title: "Tiêu đề tối thiểu 4 ký tự",
+    err_email: "Email chưa đúng dạng",
+    err_network: "Lỗi mạng, vui lòng thử lại",
+    err_400: "Nội dung chưa hợp lệ: {detail}",
+    err_401: "Phiên đăng nhập đã hết hạn — hãy tải lại trang rồi thử lại",
+    err_403: "Bạn chưa được phép thực hiện thao tác này",
+    err_409: "Thao tác này không còn áp dụng được cho góp ý hiện tại",
+    err_429: "Bạn gửi quá nhanh, vui lòng thử lại sau ít phút",
+    err_other: "Không thực hiện được (mã lỗi {code})",
+    file_big: "Tệp «{name}» lớn hơn 10 MB nên bị bỏ qua",
+    file_many: "Mỗi góp ý tối đa 12 tệp",
     dup: "Bạn đã gửi góp ý giống hệt «{title}» và góp ý đó vẫn đang ở trạng thái «{status}». Mở góp ý cũ để nhắn tiếp thay vì gửi bản mới.",
     dup_open: "Mở yêu cầu cũ",
     dup_again: "Vẫn gửi bản mới",
@@ -109,27 +109,27 @@
       "Có {n} góp ý đang chờ bạn trả lời (xếp lên đầu danh sách). Mở từng góp ý, đọc câu hỏi cuối và trả lời đúng ý được hỏi — trả lời «ok» thường chưa đủ để làm tiếp.",
     sent_at: "gửi lúc {t} ({e} trước)",
     from_page: "từ trang {p}",
-    whole_system: "🌐 toàn hệ thống",
+    whole_system: "toàn hệ thống",
     by: "bởi {name}",
-    target_note: "🎯 Đã chỉ đúng chỗ: {t}",
-    suggest_note: "✏️ Đề xuất sửa chữ: «{before}» → «{after}»",
+    target_note: "Đã chỉ đúng chỗ: {t}",
+    suggest_note: "Đề xuất sửa chữ: «{before}» → «{after}»",
     ran_for: "đã chạy {t}",
     live_pending: "Đang chờ AI nhận việc — {t}",
     live_reviewing: "AI đang làm — {t}",
     live_deploying: "Đã viết xong, đang cập nhật lên hệ thống — {t}",
-    stop: "⏹ Dừng lại",
+    stop: "Dừng lại",
     stopping: "Đang dừng lại…",
     stop_q:
       "Dừng AI đang làm góp ý này? Phần AI viết dở sẽ được cất đi, chưa áp dụng vào hệ thống. Bạn nhắn thêm là AI làm tiếp.",
     stop_yes: "Dừng",
     stop_no: "Không dừng",
     verdict_q: "Thay đổi đã lên hệ thống. Có đúng ý bạn không?",
-    verdict_yes: "✓ Đúng ý rồi",
-    verdict_no: "✗ Chưa đúng — làm lại",
-    verdict_ok: "✓ Bạn đã xác nhận đúng ý.",
+    verdict_yes: "Đúng ý rồi",
+    verdict_no: "Chưa đúng — làm lại",
+    verdict_ok: "Bạn đã xác nhận đúng ý.",
     verdict_bad: "Bạn đã báo chưa đúng — góp ý được mở lại.",
     plan_q: "AI đã đề xuất kế hoạch. Đọc kế hoạch trong luồng trao đổi rồi duyệt để AI bắt đầu sửa.",
-    plan_btn: "✓ Duyệt kế hoạch",
+    plan_btn: "Duyệt kế hoạch",
     reply_ph_wait: "Trả lời để AI làm tiếp…",
     reply_ph: "Nhắn thêm cho AI…",
     reply_ph_plain: "Nhắn thêm…",
@@ -161,14 +161,14 @@
     sel_btn: "Feedback on this text",
     sel_body: "About: “{text}”",
     close: "Close",
-    at_page: "📍 You are on {path}",
-    scope_page: "📍 This page",
-    scope_system: "🌐 Whole system",
+    at_page: "You are on {path}",
+    scope_page: "This page",
+    scope_system: "Whole system",
     scope_label: "Scope of feedback",
-    pick: "🎯 Point at the spot with the mouse",
+    pick: "Point at the spot with the mouse",
     picked: "Selected: {label}",
     unpick: "Clear selection",
-    pick_banner: "🎯 Click what needs changing",
+    pick_banner: "Click what needs changing",
     pick_esc: "Esc to cancel",
     type_label: "Type of feedback",
     model_label: "Model that will handle this item",
@@ -183,38 +183,38 @@
     plan_check: "Let me approve the plan before the AI changes anything",
     mic_start: "Dictate instead of typing",
     mic_stop: "Listening, press to stop",
-    attach: "📎 Attach files",
-    shot_label: "📸 Attach a screenshot of this page",
+    attach: "Attach files",
+    shot_label: "Attach a screenshot of this page",
     shot_hint: "",
     shot_busy: "Capturing the page…",
     shot_fail: "Could not capture the page — your feedback is still sent with the page address.",
     shot_retake: "Retake",
     remove: "Remove {name}",
     offer: "You have selected: “{text}”",
-    offer_btn: "✏️ Fix this text",
+    offer_btn: "Fix this text",
     before_label: "Current text",
     after_label: "Change to",
     suggest_title: "Fix text: “{text}”",
     anon_name: "Your name (optional)",
     anon_email: "Contact email (optional)",
-    submit_ai: "📨 Send to AI",
-    submit: "📨 Send feedback",
+    submit_ai: "Send to AI",
+    submit: "Send feedback",
     sending: "Sending…",
     uploading: "Uploading file {i}/{n}…",
-    sent_ai: "✓ Sent — the AI will pick it up within about a minute.",
-    sent: "✓ Sent. Thank you for your feedback!",
-    sent_fail: "⚠️ Feedback sent, but these files failed to upload: {names}",
-    err_title: "⚠️ The title needs at least 4 characters",
-    err_email: "⚠️ That email does not look right",
-    err_network: "⚠️ Network error, please try again",
-    err_400: "⚠️ Invalid content: {detail}",
-    err_401: "⚠️ Your session has expired — reload the page and try again",
-    err_403: "⚠️ You are not allowed to do this",
-    err_409: "⚠️ This no longer applies to the current state of the item",
-    err_429: "⚠️ You are sending too fast, please wait a few minutes",
-    err_other: "⚠️ Something went wrong (error {code})",
-    file_big: "⚠️ “{name}” is larger than 10 MB and was skipped",
-    file_many: "⚠️ At most 12 files per item",
+    sent_ai: "Sent — the AI will pick it up within about a minute.",
+    sent: "Sent. Thank you for your feedback!",
+    sent_fail: "Feedback sent, but these files failed to upload: {names}",
+    err_title: "The title needs at least 4 characters",
+    err_email: "That email does not look right",
+    err_network: "Network error, please try again",
+    err_400: "Invalid content: {detail}",
+    err_401: "Your session has expired — reload the page and try again",
+    err_403: "You are not allowed to do this",
+    err_409: "This no longer applies to the current state of the item",
+    err_429: "You are sending too fast, please wait a few minutes",
+    err_other: "Something went wrong (error {code})",
+    file_big: "“{name}” is larger than 10 MB and was skipped",
+    file_many: "At most 12 files per item",
     dup: "You already sent an identical item “{title}” and it is still “{status}”. Open it to add a message instead of sending a new copy.",
     dup_open: "Open the earlier item",
     dup_again: "Send as new anyway",
@@ -224,27 +224,27 @@
       "{n} item(s) are waiting for your reply (listed first). Open each one, read the last question and answer what was asked — “ok” is usually not enough to continue.",
     sent_at: "sent at {t} ({e} ago)",
     from_page: "from page {p}",
-    whole_system: "🌐 whole system",
+    whole_system: "whole system",
     by: "by {name}",
-    target_note: "🎯 Pointed at: {t}",
-    suggest_note: "✏️ Suggested text change: “{before}” → “{after}”",
+    target_note: "Pointed at: {t}",
+    suggest_note: "Suggested text change: “{before}” → “{after}”",
     ran_for: "running {t}",
     live_pending: "Waiting for the AI to pick this up — {t}",
     live_reviewing: "The AI is working — {t}",
     live_deploying: "Written, now being published — {t}",
-    stop: "⏹ Stop",
+    stop: "Stop",
     stopping: "Stopping…",
     stop_q:
       "Stop the AI working on this item? Unfinished work is set aside and not applied. Send another message to resume.",
     stop_yes: "Stop",
     stop_no: "Keep going",
     verdict_q: "The change is live. Is it what you wanted?",
-    verdict_yes: "✓ Yes, that is right",
-    verdict_no: "✗ Not right — redo",
-    verdict_ok: "✓ You confirmed it is right.",
+    verdict_yes: "Yes, that is right",
+    verdict_no: "Not right — redo",
+    verdict_ok: "You confirmed it is right.",
     verdict_bad: "You said it is not right — the item was reopened.",
     plan_q: "The AI proposed a plan. Read it in the conversation, then approve so it can start.",
-    plan_btn: "✓ Approve plan",
+    plan_btn: "Approve plan",
     reply_ph_wait: "Reply so the AI can continue…",
     reply_ph: "Send another message…",
     reply_ph_plain: "Send another message…",
@@ -279,7 +279,28 @@
     mono: 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
   };
   var POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"];
-  var ICONS = { lightbulb: "💡", chat: "💬", pencil: "✏️", flag: "🚩", plus: "➕" };
+  var ICON_PATHS = {
+    lightbulb: ["M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5", "M9 18h6", "M10 22h4"],
+    chat: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"],
+    pencil: ["M12 20h9", "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"],
+    flag: ["M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z", "M4 22v-7"],
+    plus: ["M12 5v14", "M5 12h14"],
+    close: ["M18 6 6 18", "M6 6l12 12"],
+    mic: ["M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z", "M19 10v2a7 7 0 0 1-14 0v-2", "M12 19v3"],
+  };
+  /** Biểu tượng nét đơn sắc (SVG dựng bằng DOM, kế thừa màu chữ). */
+  function ic(name) {
+    var NS = "http://www.w3.org/2000/svg";
+    var el = document.createElementNS(NS, "svg");
+    var a = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", class: "ic" };
+    Object.keys(a).forEach(function (k) { el.setAttribute(k, a[k]); });
+    (ICON_PATHS[name] || []).forEach(function (d) {
+      var p = document.createElementNS(NS, "path");
+      p.setAttribute("d", d);
+      el.appendChild(p);
+    });
+    return el;
+  }
   var RUNNING = ["pending", "reviewing", "deploying"];
   var STATUS_IDS = ["pending", "reviewing", "deploying", "awaiting_user", "done", "rejected"];
   var PASTE_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -521,6 +542,40 @@
     "@keyframes fh-spin{to{transform:rotate(360deg)}}",
     "@keyframes fh-pulse{50%{opacity:.35}}",
     "@keyframes fh-flash{from{box-shadow:0 0 0 3px var(--p)}to{box-shadow:0 0 0 0 transparent}}",
+    /* giao diện làm mới: chỉ hình thức, không đổi cấu trúc hay hành vi */
+    ".fh{--ring:rgba(127,127,127,.3);--ring:color-mix(in srgb,var(--p) 24%,transparent)}",
+    ".ic{width:1.1em;height:1.1em;vertical-align:-.2em;flex:none}",
+    ".hd{padding:16px 20px}",
+    ".hd-t{font-weight:700;font-size:1.25em;letter-spacing:-.01em}",
+    ".hd-s{margin-top:2px;font-size:.82em}",
+    ".x{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:50%;transition:background .15s}",
+    ".scroll{padding:18px 20px 28px;gap:24px}",
+    ".form{gap:12px}",
+    ".in{border-radius:10px;padding:10px 12px;line-height:1.5;transition:border-color .15s,box-shadow .15s}",
+    ".in:hover{border-color:var(--muted)}",
+    ".in:focus,.in:focus-visible{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--ring)}",
+    "textarea.in{min-height:5em}",
+    'select.in{appearance:none;-webkit-appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%236b7280%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px}',
+    ".seg{background:var(--soft);border:0;border-radius:12px;padding:3px;gap:2px}",
+    ".seg button{border-radius:9px;padding:8px;color:var(--muted);transition:background .15s,color .15s}",
+    '.seg button[aria-pressed="true"]{background:var(--bg);color:var(--fg);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.16)}',
+    ".btn{border-radius:10px;transition:background .15s,filter .15s,border-color .15s}",
+    ".btn.sm{padding:5px 12px;border-radius:999px}",
+    ".btn.pri{padding:10px 22px;box-shadow:0 1px 2px rgba(0,0,0,.2)}",
+    ".chip{padding:3px 6px 3px 12px}",
+    ".note{border:0;border-radius:10px;padding:10px 12px}",
+    ".warn,.okbox{border-radius:10px;padding:10px 12px}",
+    "input[type=checkbox]{accent-color:var(--p);width:16px;height:16px;margin:0}",
+    ".shot img{border-radius:10px}",
+    ".lsec{padding-top:20px}",
+    ".lh{font-size:.75em;letter-spacing:.06em;margin-bottom:10px}",
+    ".list{gap:8px}",
+    ".card{border-radius:12px;transition:border-color .15s}",
+    ".card:hover{border-color:var(--muted)}",
+    ".card-h{padding:12px 14px}",
+    ".card-b{padding:12px 14px}",
+    ".pill{padding:3px 10px}",
+    ".empty{padding:28px 0}",
     "@media (max-width:640px){.drawer{width:100vw}.pos-br.open .fab,.pos-tr.open .fab,.pos-bl.open .fab,.pos-tl.open .fab{display:none}.in,.btn,select.in{font-size:16px}.hd,.scroll{padding-left:16px;padding-right:16px}.hd-s{max-width:calc(100vw - 96px)}.card-h{flex-wrap:wrap}.ct{flex:1 1 100%}}",
     "@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}",
     "@media print{:host,.fh{display:none!important}}",
@@ -622,7 +677,7 @@
       primary: pick("primary"), primaryText: pick("primaryText"), bg: pick("bg"), fg: pick("fg"), border: pick("border"),
       radius: pick("radius"), fontSize: pick("fontSize"), font: pick("font"), colorScheme: pick("colorScheme") || "auto",
       position: POSITIONS.indexOf(pick("position")) >= 0 ? pick("position") : "bottom-right",
-      icon: ICONS[pick("icon")] ? pick("icon") : "lightbulb",
+      icon: ICON_PATHS[pick("icon")] ? pick("icon") : "lightbulb",
       locale: pick("locale") === "en" ? "en" : "vi",
       label: typeof pick("label") === "string" ? pick("label").slice(0, 24) : "",
     };
@@ -759,11 +814,11 @@
       if (r.status === 0) return t("err_network");
       if (r.status === 400) return t("err_400", { detail: (r.data && r.data.error) || "" });
       if (r.status === 401) return t("err_401");
-      if (r.status === 403) return (r.data && r.data.error ? "⚠️ " + r.data.error : t("err_403"));
-      if (r.status === 409) return (r.data && r.data.error ? "⚠️ " + r.data.error : t("err_409"));
+      if (r.status === 403) return (r.data && r.data.error ? r.data.error : t("err_403"));
+      if (r.status === 409) return (r.data && r.data.error ? r.data.error : t("err_409"));
       if (r.status === 429) return t("err_429");
-      if (r.status === 413) return "⚠️ " + ((r.data && r.data.error) || t("file_big", { name: "" }));
-      if (r.status === 415) return "⚠️ " + ((r.data && r.data.error) || t("err_other", { code: 415 }));
+      if (r.status === 413) return ((r.data && r.data.error) || t("file_big", { name: "" }));
+      if (r.status === 415) return ((r.data && r.data.error) || t("err_other", { code: 415 }));
       return t("err_other", { code: r.status });
     }
     function attUrl(id) {
@@ -806,7 +861,7 @@
     function micButton(onText) {
       if (!SR || !feat.voice) return null;
       var rec = null, listening = false;
-      var b = h("button", { type: "button", class: "mic", "aria-label": t("mic_start"), "aria-pressed": "false", title: t("mic_start") }, "🎤");
+      var b = h("button", { type: "button", class: "mic", "aria-label": t("mic_start"), "aria-pressed": "false", title: t("mic_start") }, ic("mic"));
       function set(v) {
         listening = v;
         b.classList.toggle("rec", v);
@@ -880,7 +935,7 @@
       typeRow.appendChild(F.type);
     }
     if (models.length) {
-      F.model = h("select", { class: "in grow", "aria-label": t("model_label"), title: t("model_label") }, models.map(function (m) { return h("option", { value: m.id, text: "🤖 " + (m.label || m.id) }); }));
+      F.model = h("select", { class: "in grow", "aria-label": t("model_label"), title: t("model_label") }, models.map(function (m) { return h("option", { value: m.id, text: (m.label || m.id) }); }));
       typeRow.appendChild(F.model);
     }
     if (typeRow.children.length) form.appendChild(typeRow);
@@ -983,7 +1038,7 @@
       F.chip.hidden = !S.target;
       if (S.target) {
         F.chip.appendChild(document.createTextNode(t("picked", { label: S.target.label })));
-        F.chip.appendChild(h("button", { type: "button", "aria-label": t("unpick"), onclick: function () { S.target = null; paintChip(); } }, "✕"));
+        F.chip.appendChild(h("button", { type: "button", "aria-label": t("unpick"), onclick: function () { S.target = null; paintChip(); } }, ic("close")));
       }
     }
     function contentType() {
@@ -1098,10 +1153,10 @@
           var u = URL.createObjectURL(f);
           objUrls.push(u);
           thumb = h("img", { src: u, alt: f.name, title: f.name });
-        } else thumb = h("div", { class: "fn", title: f.name }, "📎 " + f.name);
+        } else thumb = h("div", { class: "fn", title: f.name }, f.name);
         F.filesBox.appendChild(h("div", { class: "pf" }, [
           thumb,
-          h("button", { type: "button", "aria-label": t("remove", { name: f.name }), onclick: function () { S.files.splice(i, 1); paintFiles(); } }, "✕"),
+          h("button", { type: "button", "aria-label": t("remove", { name: f.name }), onclick: function () { S.files.splice(i, 1); paintFiles(); } }, ic("close")),
         ]));
       });
     }
@@ -1325,7 +1380,7 @@
             var img = h("img", { class: "thumb", src: attUrl(a.id), alt: a.fileName, loading: "lazy" });
             attRefs.push({ el: img, id: a.id });
             link.appendChild(img);
-          } else link.textContent = "📎 " + a.fileName;
+          } else link.textContent = a.fileName;
           D.atts.appendChild(link);
         });
       }
@@ -1334,10 +1389,9 @@
         msgs.forEach(function (m) {
           var kind = m.kind || "chat";
           var chat = kind === "chat";
-          var icon = kind === "system" ? "⚙️" : kind === "progress" ? "•" : m.role === "ai" ? "🤖" : m.role === "admin" ? "🛠️" : "👤";
           var name = m.authorName || (kind === "system" || m.role === "system" ? t("author_system") : m.role === "ai" ? t("author_ai") : m.role === "admin" ? t("author_admin") : t("author_user"));
           D.tl.appendChild(h("li", { class: chat ? "" : "dim" }, [
-            h("div", { class: "mh" }, [h("span", { text: icon, "aria-hidden": "true" }), h("span", { text: name }), h("span", { text: "· " + hhmm(m.createdAt) })]),
+            h("div", { class: "mh" }, [h("span", { text: name }), h("span", { text: "· " + hhmm(m.createdAt) })]),
             h("div", { class: "mb" + (chat ? "" : " soft"), text: m.body }),
           ]));
         });
@@ -1516,7 +1570,7 @@
       wrap.appendChild(fab);
       scrim = h("div", { class: "scrim", hidden: true, onclick: guard(function () { setOpen(false); }) });
       titleSub = h("div", { class: "hd-s" });
-      closeBtn = h("button", { type: "button", class: "x", "aria-label": t("close"), onclick: guard(function () { setOpen(false); }) }, "✕");
+      closeBtn = h("button", { type: "button", class: "x", "aria-label": t("close"), onclick: guard(function () { setOpen(false); }) }, ic("close"));
       var scroller = h("div", { class: "scroll" });
       drawer = h("aside", { class: "drawer", role: "dialog", "aria-modal": "true", "aria-label": t("title"), hidden: true }, [
         h("header", { class: "hd" }, [h("div", { style: "min-width:0" }, [h("div", { class: "hd-t", text: t("title") }), titleSub]), closeBtn]),
@@ -1555,7 +1609,7 @@
       if (!fab) return;
       fab.hidden = !fabEnabled || S.fabHidden || S.pathHidden;
       fab.textContent = "";
-      fab.appendChild(document.createTextNode(S.open ? "✕" : ICONS[TH.icon]));
+      fab.appendChild(ic(S.open ? "close" : TH.icon));
       var n = S.awaiting.length;
       if (!S.open && n > 0) fab.appendChild(badge);
       var label = n ? t("fab_wait", { n: n }) : TH.label || t("fab_tip");
@@ -1899,7 +1953,7 @@
           hideSelBubble();
           if (tx) openWithSelection(tx, el);
         }),
-      }, [h("span", { "aria-hidden": "true", text: ICONS.pencil }), h("span", { text: t("sel_btn") })]);
+      }, [ic("pencil"), h("span", { text: t("sel_btn") })]);
       wrap.appendChild(selBtn);
       var later = function () {
         clearTimeout(selTimer);
