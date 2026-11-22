@@ -102,9 +102,9 @@ Token trong header **hoặc** `?t=<token>`. Chỉ người gửi/quản trị d�
 
 ---
 
-## 2. API máy (worker / operator)
+## 2. API máy (worker / reader / operator)
 
-Header: `Authorization: Bearer $KEY` (khoá `fhk_w_…` hoặc `fhk_o_…`). Khoá **operator** chọn dự án bằng `?project=<slug>`; khoá **worker** đã gắn sẵn một dự án (truyền `?project=` khác dự án của nó ⇒ `403`).
+Header: `Authorization: Bearer $KEY` (khoá `fhk_w_…`, `fhk_r_…` hoặc `fhk_o_…`). Khoá **operator** chọn dự án bằng `?project=<slug>`; khoá **worker** và **reader** (chỉ đọc) đã gắn sẵn một dự án (truyền `?project=` khác dự án của nó ⇒ `403`). Khoá **reader** chỉ được `GET`: mọi phương thức ghi (nhận việc, nhắn tin, đổi trạng thái, nhập) trả `403` — dùng cho AI/CLI của chủ dự án chỉ cần đọc góp ý.
 
 ### `GET /machine/projects`
 Danh sách dự án kèm `counts` (số góp ý theo trạng thái). Operator thấy tất cả; worker chỉ thấy dự án của mình.
@@ -176,7 +176,7 @@ Cookie `hub_session` (đăng nhập `POST /api/admin/login { email, password }`,
 | `GET/POST /api/admin/projects` | Liệt kê / tạo dự án (trả `signingSecret` một lần) |
 | `GET/PATCH/DELETE /api/admin/projects/{slug}` | Xem / cấu hình / xoá (xoá phải gửi `{ "confirm": "<slug>" }`) |
 | `GET /api/admin/projects/{slug}/secret` · `POST …/rotate-secret` | Xem / đổi khoá ký token |
-| `POST /api/admin/projects/{slug}/keys` | Cấp khoá worker (hiện một lần) |
+| `POST /api/admin/projects/{slug}/keys` `{ label, scope?: "worker" \| "reader" }` | Cấp khoá worker (mặc định) hoặc khoá chỉ đọc (hiện một lần) |
 | `GET/POST /api/admin/keys` · `DELETE /api/admin/keys/{id}` | Khoá operator: liệt kê / cấp / thu hồi (khoá worker cũng thu hồi qua route này) |
 | `GET /api/admin/feedback` · `GET/PATCH /api/admin/feedback/{id}` | Bảng góp ý, chi tiết, trả lời/đổi trạng thái |
 

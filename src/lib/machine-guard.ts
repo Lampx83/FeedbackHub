@@ -26,7 +26,7 @@ export async function machineFeedback(
   if (!auth.ok) return auth;
   const fb = await prisma.feedback.findUnique({ where: { id } });
   if (!fb) return { ok: false, response: fail(404, "Không tìm thấy góp ý") };
-  if (auth.scope === "worker" && auth.project?.id !== fb.projectId) {
+  if (auth.scope !== "operator" && auth.project?.id !== fb.projectId) {
     return { ok: false, response: fail(403, "Góp ý này không thuộc dự án của khoá") };
   }
   const project = auth.project?.id === fb.projectId ? auth.project : await prisma.project.findUnique({ where: { id: fb.projectId } });

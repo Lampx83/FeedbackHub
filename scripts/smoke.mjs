@@ -256,6 +256,22 @@ try {
   ok((await call("POST", "/api/v1/feedback", { token: admin, body: { title: "Quản trị gửi loại chỉ dành cho ADMIN", type: "cai-tien" } })).status === 200, "vai trò trong roles gửi được loại đó");
   ok((await call("POST", "/api/v1/feedback", { token: staff, body: { title: "Nhân viên gửi loại thường", type: curTypes[0].id } })).status === 200, "loại không giới hạn vẫn gửi được bình thường")
 
+  // ── khoá chỉ đọc theo dự án (reader): đọc được dự án mình, KHÔNG ghi được, KHÔNG thấy dự án khác ──
+  const rk = await call("POST", `/api/admin/projects/${slug}/keys`, { cookie, body: { label: "reader-smoke", scope: "reader" } });
+  ok(rk.data.key?.startsWith("fhk_r_"), "cấp khoá chỉ đọc (fhk_r_)");
+  const R = rk.data.key;
+  const rid = ctxFb.data.feedback?.id;
+  const rGet = await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R });
+  ok(rGet.status === 200 && rGet.data.feedback?.id === rid, "khoá chỉ đọc đọc được chi tiết góp ý của dự án mình");
+  ok((await call("GET", "/api/v1/machine/feedback", { key: R })).status === 200, "khoá chỉ đọc liệt kê được góp ý");
+  const rProj = await call("GET", "/api/v1/machine/projects", { key: R });
+  ok(rProj.status === 200 && rProj.data.projects.length === 1 && rProj.data.projects[0].slug === slug, "khoá chỉ đọc chỉ thấy đúng một dự án", JSON.stringify(rProj.data).slice(0, 200));
+  ok((await call("GET", "/api/v1/machine/queue?project=khong-phai-du-an-nay", { key: R })).status === 403, "khoá chỉ đọc không chọn được dự án khác");
+  ok((await call("POST", `/api/v1/machine/feedback/${rid}/claim`, { key: R })).status === 403, "khoá chỉ đọc không nhận việc (403)");
+  ok((await call("POST", `/api/v1/machine/feedback/${rid}/messages`, { key: R, body: { body: "thử ghi" } })).status === 403, "khoá chỉ đọc không nhắn tin (403)");
+  ok((await call("POST", `/api/v1/machine/feedback/${rid}/transition`, { key: R, body: { to: "done" } })).status === 403, "khoá chỉ đọc không đổi trạng thái (403)");
+  ok((await call("POST", `/api/v1/machine/import?project=${slug}`, { key: R, body: { items: [] } })).status === 403, "khoá chỉ đọc không nhập dữ liệu (403)")
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);

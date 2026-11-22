@@ -8,7 +8,7 @@ import { AddButton, ConfirmDialog, Modal } from "./ui/Modal";
 import { SecretDialog } from "./ui/SecretDialog";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, PageHeader, SearchInput, Spinner, Toolbar } from "./ui/primitives";
 
-export type KeyRow = { id: string; prefix: string; label: string; revokedAt: string | null; lastUsedAt: string | null; createdAt: string };
+export type KeyRow = { id: string; scope?: string; prefix: string; label: string; revokedAt: string | null; lastUsedAt: string | null; createdAt: string };
 
 /** Bảng khoá dùng chung cho khoá operator và khoá worker của dự án. */
 export function KeyTable({ keys, onRevoke }: { keys: KeyRow[]; onRevoke: (k: KeyRow) => void }) {
@@ -41,11 +41,11 @@ export function KeyTable({ keys, onRevoke }: { keys: KeyRow[]; onRevoke: (k: Key
 }
 
 /** Hộp thoại cấp khoá: nhập nhãn → gọi API → trả về khoá thô để hiện đúng một lần. */
-export function IssueKeyDialog({ open, onClose, endpoint, title, onIssued }: { open: boolean; onClose: () => void; endpoint: string; title: string; onIssued: (key: string) => void }) {
-  return open ? <IssueKeyForm onClose={onClose} endpoint={endpoint} title={title} onIssued={onIssued} /> : null;
+export function IssueKeyDialog({ open, onClose, endpoint, title, onIssued, extra }: { open: boolean; onClose: () => void; endpoint: string; title: string; onIssued: (key: string) => void; extra?: Record<string, unknown> }) {
+  return open ? <IssueKeyForm onClose={onClose} endpoint={endpoint} title={title} onIssued={onIssued} extra={extra} /> : null;
 }
 
-function IssueKeyForm({ onClose, endpoint, title, onIssued }: { onClose: () => void; endpoint: string; title: string; onIssued: (key: string) => void }) {
+function IssueKeyForm({ onClose, endpoint, title, onIssued, extra }: { onClose: () => void; endpoint: string; title: string; onIssued: (key: string) => void; extra?: Record<string, unknown> }) {
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ function IssueKeyForm({ onClose, endpoint, title, onIssued }: { onClose: () => v
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const r = await api<{ key: string }>(endpoint, { body: { label: label.trim() } });
+    const r = await api<{ key: string }>(endpoint, { body: { label: label.trim(), ...extra } });
     setBusy(false);
     if (!r.ok) return setError(r.error);
     onIssued(r.data.key);

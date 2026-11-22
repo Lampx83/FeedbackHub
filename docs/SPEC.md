@@ -174,6 +174,7 @@ Bật `anonymousSubmit` trên dự án. Không token; gọi kèm header `X-Hub-P
 | Khoá | Tiền tố | Phạm vi |
 |---|---|---|
 | Worker | `fhk_w_…` | Gắn **một dự án**. Dành cho worker tự động. |
+| Reader | `fhk_r_…` | Gắn **một dự án**, **chỉ đọc** (`GET`; mọi ghi ⇒ 403). Cho AI/CLI của chủ dự án chỉ cần xem góp ý. |
 | Operator | `fhk_o_…` | **Mọi dự án** (chọn bằng `?project=`). Dành cho Claude/MCP/CLI của người vận hành. Thu hồi riêng được. |
 
 Khoá hiện **một lần** lúc cấp, hub chỉ lưu băm. Thu hồi có hiệu lực ngay. Token người dùng **không** dùng được ở API máy và ngược lại.

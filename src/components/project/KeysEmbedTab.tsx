@@ -18,6 +18,7 @@ export function KeysEmbedTab({ project, hubUrl, reloadKeys }: { project: Project
   return (
     <div className="space-y-8">
       <WorkerKeys project={project} reloadKeys={reloadKeys} />
+      <ReaderKeys project={project} reloadKeys={reloadKeys} />
       <SigningSecret project={project} />
       <Embed project={project} hubUrl={hubUrl} />
     </div>
@@ -41,7 +42,7 @@ function WorkerKeys({ project, reloadKeys }: { project: ProjectData; reloadKeys:
     <section>
       <SectionTitle title="Khoá worker">Worker là tiến trình tự nhận và xử lý góp ý của riêng dự án này. Khoá chỉ hiện một lần khi cấp; hub chỉ lưu bản băm.</SectionTitle>
       <Toolbar right={<AddButton onClick={() => setIssuing(true)}>Cấp khoá worker</AddButton>} />
-      {project.keys.length === 0 ? <EmptyState title="Chưa có khoá worker nào" /> : <KeyTable keys={project.keys} onRevoke={setRevoking} />}
+      {project.keys.filter((k) => k.scope !== "reader").length === 0 ? <EmptyState title="Chưa có khoá worker nào" /> : <KeyTable keys={project.keys.filter((k) => k.scope !== "reader")} onRevoke={setRevoking} />}
 
       <IssueKeyDialog
         open={issuing}
@@ -73,6 +74,63 @@ function WorkerKeys({ project, reloadKeys }: { project: ProjectData; reloadKeys:
         message={
           <>
             Khoá <strong>{revoking?.label}</strong> ({revoking?.prefix}…) sẽ ngừng dùng được ngay; worker đang chạy với khoá này sẽ báo lỗi cho tới khi bạn cấp khoá mới.
+          </>
+        }
+        confirmLabel="Thu hồi khoá"
+        onCancel={() => setRevoking(null)}
+        onConfirm={async () => {
+          const r = await api(`/api/admin/keys/${revoking!.id}`, { method: "DELETE" });
+          if (!r.ok) return r.error;
+          setRevoking(null);
+          void reloadKeys();
+        }}
+      />
+    </section>
+  );
+}
+
+function ReaderKeys({ project, reloadKeys }: { project: ProjectData; reloadKeys: () => Promise<void> }) {
+  const [issuing, setIssuing] = useState(false);
+  const [issued, setIssued] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<KeyRow | null>(null);
+  const keys = project.keys.filter((k) => k.scope === "reader");
+  return (
+    <section>
+      <SectionTitle title="Khoá chỉ đọc">Cho AI hoặc dòng lệnh của chủ dự án xem góp ý của <span className="font-mono">{project.slug}</span> (nội dung, tin nhắn, tệp đính kèm) mà không ghi hay đổi được gì và không thấy dự án khác. Khoá chỉ hiện một lần khi cấp.</SectionTitle>
+      <Toolbar right={<AddButton onClick={() => setIssuing(true)}>Cấp khoá chỉ đọc</AddButton>} />
+      {keys.length === 0 ? <EmptyState title="Chưa có khoá chỉ đọc nào" /> : <KeyTable keys={keys} onRevoke={setRevoking} />}
+
+      <IssueKeyDialog
+        open={issuing}
+        onClose={() => setIssuing(false)}
+        endpoint={`/api/admin/projects/${project.slug}/keys`}
+        extra={{ scope: "reader" }}
+        title="Cấp khoá chỉ đọc"
+        onIssued={(k) => {
+          setIssuing(false);
+          setIssued(k);
+          void reloadKeys();
+        }}
+      />
+      <SecretDialog
+        open={!!issued}
+        onClose={() => setIssued(null)}
+        title="Khoá chỉ đọc mới"
+        value={issued ?? ""}
+        warning="Khoá này chỉ hiện MỘT LẦN. Đóng hộp thoại là không xem lại được — hãy sao chép và cất vào trình quản lý mật khẩu."
+        note={
+          <>
+            Gửi trong header <code className="font-mono">Authorization: Bearer …</code> khi gọi <code className="font-mono">GET /api/v1/machine/…</code>. Chỉ đọc được dự án <span className="font-mono">{project.slug}</span>.
+          </>
+        }
+      />
+      <ConfirmDialog
+        open={!!revoking}
+        danger
+        title="Thu hồi khoá chỉ đọc"
+        message={
+          <>
+            Khoá <strong>{revoking?.label}</strong> ({revoking?.prefix}…) sẽ ngừng dùng được ngay; công cụ đang dùng khoá này sẽ báo lỗi.
           </>
         }
         confirmLabel="Thu hồi khoá"
