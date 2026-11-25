@@ -426,6 +426,18 @@ try {
   ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { autoApproveRoles: [] } } })).status === 200, "gỡ quy tắc tự duyệt");
   ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { requireApproval: false } } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 200, "tắt cổng duyệt thì hành vi trở lại như cũ");
 
+  // ── bảng góp ý: sắp xếp, giới hạn, xuất CSV (ràng quyền theo dự án, chống công thức độc) ──
+  const evil = (await call("POST", "/api/v1/feedback", { token: admin, body: { title: `=HYPERLINK("http://x")${tag}`, body: 'có "nháy", dấu phẩy,\nxuống dòng' } })).data.feedback?.id;
+  const asc = (await call("GET", `/api/admin/feedback?project=${slug}&sort=old&limit=2`, { cookie })).data.items;
+  const desc = (await call("GET", `/api/admin/feedback?project=${slug}&sort=new&limit=2`, { cookie })).data.items;
+  ok(asc.length === 2 && desc.length === 2 && new Date(asc[0].createdAt) <= new Date(asc[1].createdAt) && new Date(desc[0].createdAt) >= new Date(desc[1].createdAt) && desc[0].id === evil, "bảng góp ý: sắp xếp cũ/mới + giới hạn số dòng (limit)");
+  const csv = await call("GET", `/api/admin/feedback?project=${slug}&format=csv`, { cookie });
+  ok(csv.status === 200 && /text\/csv/.test(csv.res.headers.get("content-type")) && /attachment/.test(csv.res.headers.get("content-disposition")) && new Uint8Array(await (await fetch(`${HUB}/api/admin/feedback?project=${slug}&format=csv`, { headers: { Cookie: cookie } })).arrayBuffer()).slice(0, 3).join() === "239,187,191", "xuất CSV: tải về, UTF-8 có BOM");
+  ok(csv.data.includes(`"'=HYPERLINK(""http://x"")${tag}"`) && !csv.data.includes(`,"=HYPERLINK`), "xuất CSV: ô bắt đầu bằng = được vô hiệu hoá (chống CSV injection)");
+  ok(csv.data.includes('"có ""nháy"", dấu phẩy,\nxuống dòng"'), "xuất CSV: nháy kép, dấu phẩy, xuống dòng được thoát đúng");
+  ok(!(await call("GET", `/api/admin/feedback?format=csv`, { cookie: O.cookie })).data.includes(evil), "xuất CSV: quản trị dự án khác không lấy được góp ý của dự án này");
+  ok((await call("GET", `/api/admin/feedback?format=csv`, { key: W2 })).status === 401, "xuất CSV: khoá máy bị từ chối (401)");
+
   // ── thông báo: chuông trong bảng điều khiển + cấu hình email/webhook ──
   const feed0 = await call("GET", "/api/admin/notifications", { cookie });
   ok(feed0.status === 200 && Array.isArray(feed0.data.items) && typeof feed0.data.unread === "number", "chuông thông báo trả danh sách + số chưa đọc");

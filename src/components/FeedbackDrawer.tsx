@@ -100,7 +100,7 @@ function eventText(e: FbEvent): string {
   return e.kind;
 }
 
-export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
+export function FeedbackDrawer({ id, onClose, onChanged, onPrev, onNext }: { id: string; onClose: () => void; onChanged: () => void; onPrev?: () => void; onNext?: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useOverlay(true, onClose, panel);
@@ -177,11 +177,23 @@ export function FeedbackDrawer({ id, onClose, onChanged }: { id: string; onClose
               </div>
             ) : null}
           </div>
-          <button type="button" onClick={onClose} aria-label="Đóng" className="-mr-1 shrink-0 rounded-md p-1 text-muted hover:bg-surface-2 hover:text-fg">
+          <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+          {onPrev || onNext ? (
+            <>
+              <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Góp ý trước (k)" title="Góp ý trước (k)" className="rounded-md p-1 text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 15l6-6 6 6" /></svg>
+              </button>
+              <button type="button" onClick={onNext} disabled={!onNext} aria-label="Góp ý kế tiếp (j)" title="Góp ý kế tiếp (j)" className="rounded-md p-1 text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
+              </button>
+            </>
+          ) : null}
+          <button type="button" onClick={onClose} aria-label="Đóng" className="shrink-0 rounded-md p-1 text-muted hover:bg-surface-2 hover:text-fg">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">

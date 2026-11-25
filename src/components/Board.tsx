@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { withBase } from "@/lib/base-path";
 import { api } from "./api";
 import { FeedbackDrawer } from "./FeedbackDrawer";
 import { timeAgo } from "./format";
@@ -21,7 +22,7 @@ type Item = {
   _count: { messages: number; attachments: number };
 };
 
-export type Filters = { project: string; status: string; kind: string; q: string; id: string; approval?: string };
+export type Filters = { project: string; status: string; kind: string; q: string; id: string; approval?: string; sort?: string };
 
 const OPEN_VALUE = OPEN_STATUSES.join(",");
 
@@ -30,6 +31,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
   const [status, setStatus] = useState(initial.status);
   const [kind, setKind] = useState(initial.kind);
   const [approval, setApproval] = useState(initial.approval ?? "");
+  const [sort, setSort] = useState(initial.sort ?? "new");
   const [q, setQ] = useState(initial.q);
   const [dq, setDq] = useState(initial.q);
   const [openId, setOpenId] = useState(initial.id);
@@ -38,6 +40,12 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
   const [error, setError] = useState<string | null>(null);
   const reload = useRef<() => void>(() => {});
   // Chọn nhiều để duyệt hàng loạt (chỉ các dòng chưa duyệt).
+  // Số dòng muốn xem; đổi bộ lọc thì về 100 (gắn với khoá bộ lọc nên không cần effect đặt lại).
+  const filterKey = [project, status, kind, approval, dq, sort].join("|");
+  const [lim, setLim] = useState({ key: "", n: 100 });
+  const limit = lim.key === filterKey ? lim.n : 100;
+  const [focusId, setFocusId] = useState("");
+  const searchRef = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNote, setBulkNote] = useState<string | null>(null);
@@ -56,10 +64,11 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
     if (kind) u.set("kind", kind);
     if (approval) u.set("approval", approval);
     if (dq) u.set("q", dq);
+    if (sort !== "new") u.set("sort", sort);
     if (openId) u.set("id", openId);
     const s = u.toString();
     window.history.replaceState(null, "", s ? `/board?${s}` : "/board");
-  }, [project, status, kind, approval, dq, openId]);
+  }, [project, status, kind, approval, dq, sort, openId]);
 
   // Tải danh sách; làm mới 15 giây một lần khi tab đang hiện.
   useEffect(() => {
@@ -70,6 +79,8 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
     if (kind) u.set("kind", kind);
     if (approval) u.set("approval", approval);
     if (dq) u.set("q", dq);
+    if (sort !== "new") u.set("sort", sort);
+    u.set("limit", String(limit));
     const url = `/api/admin/feedback?${u.toString()}`;
     async function run() {
       const r = await api<{ items: Item[]; stats: Record<string, number> }>(url);
@@ -94,7 +105,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [project, status, kind, approval, dq]);
+  }, [project, status, kind, approval, dq, sort, limit]);
 
   const pickable = (items ?? []).filter((i) => !i.approvedAt);
   const chosen = pickable.filter((i) => picked.has(i.id)).map((i) => i.id);
@@ -108,6 +119,50 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
     setPicked(new Set());
     reload.current();
   }
+
+  const csvHref = useMemo(() => {
+    const u = new URLSearchParams({ format: "csv" });
+    if (project) u.set("project", project);
+    if (status) u.set("status", status);
+    if (kind) u.set("kind", kind);
+    if (approval) u.set("approval", approval);
+    if (dq) u.set("q", dq);
+    if (sort !== "new") u.set("sort", sort);
+    return withBase(`/api/admin/feedback?${u.toString()}`);
+  }, [project, status, kind, approval, dq, sort]);
+
+  // Phím tắt (bỏ qua khi đang gõ): j/k = xuống/lên (đang mở chi tiết thì chuyển sang góp ý kế), Enter = mở,
+  // x = chọn/bỏ chọn dòng, / = tìm kiếm. Esc đóng khung chi tiết đã do khung tự lo.
+  const move = (dir: 1 | -1) => {
+    if (!items?.length) return;
+    const cur = items.findIndex((i) => i.id === (openId || focusId));
+    const next = items[Math.min(items.length - 1, Math.max(0, cur < 0 ? 0 : cur + dir))];
+    setFocusId(next.id);
+    if (openId) setOpenId(next.id);
+    document.getElementById(`fb-${next.id}`)?.scrollIntoView({ block: "nearest" });
+  };
+  const keyRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    keyRef.current = (e) => {
+    const t = e.target as HTMLElement | null;
+    if (e.metaKey || e.ctrlKey || e.altKey || t?.closest("input, textarea, select, [contenteditable=true]")) return;
+    if (e.key === "j") move(1);
+    else if (e.key === "k") move(-1);
+    else if (e.key === "Enter" && focusId && !openId && !t?.closest("button, a")) setOpenId(focusId);
+    else if (e.key === "x" && (focusId || openId)) {
+      const it = items?.find((i) => i.id === (openId || focusId));
+      if (it && !it.approvedAt) setPicked((s) => { const n = new Set(s); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; });
+    } else if (e.key === "/") {
+      e.preventDefault();
+      searchRef.current?.querySelector("input")?.focus();
+    } else return;
+    };
+  });
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => keyRef.current(e);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   const statusOptions = useMemo(() => {
     const openCount = OPEN_STATUSES.reduce((n, s) => n + (stats[s] ?? 0), 0);
@@ -127,7 +182,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
       <Toolbar
         left={
           <>
-            <SearchInput value={q} onChange={setQ} placeholder="Tìm trong tiêu đề và nội dung…" />
+            <div ref={searchRef} className="contents"><SearchInput value={q} onChange={setQ} placeholder="Tìm trong tiêu đề và nội dung…  ( / )" /></div>
             <Select aria-label="Lọc theo dự án" value={project} onChange={(e) => setProject(e.target.value)} className="w-auto max-w-full">
               <option value="">Mọi dự án</option>
               {projects.map((p) => (
@@ -156,8 +211,14 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
               <option value="pending">Chưa duyệt</option>
               <option value="approved">Đã duyệt</option>
             </Select>
+            <Select aria-label="Sắp xếp" value={sort} onChange={(e) => setSort(e.target.value)} className="w-auto max-w-full">
+              <option value="new">Mới nhất trước</option>
+              <option value="old">Cũ nhất trước</option>
+              <option value="updated">Vừa cập nhật</option>
+            </Select>
           </>
         }
+        right={<a href={csvHref} download className="inline-flex items-center rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium transition hover:bg-surface-2" title="Tải các góp ý đang lọc (tối đa 5000 dòng) về Excel/CSV">Xuất CSV</a>}
       />
 
       {error ? <Alert tone="error" className="mb-3">{error}</Alert> : null}
@@ -178,11 +239,11 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
       ) : items ? (
         <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {items.map((it) => (
-            <li key={it.id} className="flex items-start">
+            <li key={it.id} id={`fb-${it.id}`} className={`flex items-start ${focusId === it.id && !openId ? "bg-brand/5 ring-1 ring-inset ring-brand/40" : ""}`}>
               {!it.approvedAt ? (
                 <input type="checkbox" aria-label={`Chọn: ${it.title}`} className="ml-4 mt-4 size-4 shrink-0" checked={picked.has(it.id)} onChange={() => setPicked((s) => { const n = new Set(s); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; })} />
               ) : <span className="ml-4 w-4 shrink-0" />}
-              <button type="button" onClick={() => setOpenId(it.id)} className={`block min-w-0 flex-1 px-3 py-3 text-left transition hover:bg-surface-2 ${openId === it.id ? "bg-surface-2" : ""}`}>
+              <button type="button" onClick={() => { setFocusId(it.id); setOpenId(it.id); }} className={`block min-w-0 flex-1 px-3 py-3 text-left transition hover:bg-surface-2 ${openId === it.id ? "bg-surface-2" : ""}`}>
                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                   <span className="min-w-0 flex-1 basis-64 break-words font-medium leading-snug">{it.title}</span>
                   <span className="flex shrink-0 items-center gap-1.5">
@@ -206,9 +267,17 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
           ))}
         </ul>
       ) : null}
-      {items && items.length >= 300 ? <p className="mt-2 text-[13px] text-muted">Chỉ hiện 300 góp ý mới nhất; dùng bộ lọc để thu hẹp.</p> : null}
+      {items && items.length >= limit ? (
+        <div className="mt-3 text-center">
+          <Button variant="secondary" onClick={() => setLim({ key: filterKey, n: Math.min(1000, limit + 100) })} disabled={limit >= 1000}>
+            {limit >= 1000 ? "Đã hiện 1000 dòng — hãy lọc để thu hẹp" : `Hiện thêm (đang hiện ${items.length})`}
+          </Button>
+        </div>
+      ) : items && items.length > 0 ? (
+        <p className="mt-2 text-[13px] text-muted">Phím tắt: j / k chuyển dòng · Enter mở · x chọn · / tìm kiếm.</p>
+      ) : null}
 
-      {openId ? <FeedbackDrawer key={openId} id={openId} onClose={() => setOpenId("")} onChanged={() => reload.current()} /> : null}
+      {openId ? <FeedbackDrawer key={openId} id={openId} onClose={() => setOpenId("")} onChanged={() => reload.current()} onPrev={items && items.findIndex((i) => i.id === openId) > 0 ? () => move(-1) : undefined} onNext={items && items.findIndex((i) => i.id === openId) >= 0 && items.findIndex((i) => i.id === openId) < items.length - 1 ? () => move(1) : undefined} /> : null}
     </>
   );
 }
