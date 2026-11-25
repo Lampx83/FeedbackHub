@@ -33,6 +33,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
+      - name: Khoá VAPID thử (thông báo đẩy)
+        run: |
+          node -e 'const k=require("web-push").generateVAPIDKeys();console.log("HUB_VAPID_PUBLIC="+k.publicKey+"\nHUB_VAPID_PRIVATE="+k.privateKey+"\nHUB_VAPID_SUBJECT=mailto:ci@example.com")' >> "$GITHUB_ENV"
       - name: Kiểm tra kiểu và lint
         run: npx tsc --noEmit && npm run lint
       - name: Migration + dữ liệu khởi tạo

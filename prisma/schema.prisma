@@ -28,6 +28,20 @@ model AdminToken {
   @@index([adminId])
 }
 
+/// Đăng ký nhận thông báo đẩy của trình duyệt (Web Push) của một quản trị viên. Mỗi trình duyệt/thiết bị một dòng.
+model PushSubscription {
+  id        String    @id @default(cuid())
+  adminId   String
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  endpoint  String    @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  @@index([adminId])
+}
+
 model AdminUser {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -44,6 +58,7 @@ model AdminUser {
   /// Lần cuối bấm "đã đọc" ở chuông thông báo; góp ý/trả lời mới hơn mốc này là chưa đọc.
   notifSeenAt DateTime?
   tokens      AdminToken[]
+  pushSubs    PushSubscription[]
   memberships        ProjectMember[]
 }
 

@@ -35,6 +35,10 @@ services:
       # Thông báo qua email (tuỳ chọn) và số proxy tin cậy trước hub (xem docs/DEPLOY.md).
       HUB_SMTP_URL: ${HUB_SMTP_URL:-}
       HUB_MAIL_FROM: ${HUB_MAIL_FROM:-}
+      # Thông báo đẩy của trình duyệt (tuỳ chọn): tạo khoá bằng `npx web-push generate-vapid-keys`.
+      HUB_VAPID_PUBLIC: ${HUB_VAPID_PUBLIC:-}
+      HUB_VAPID_PRIVATE: ${HUB_VAPID_PRIVATE:-}
+      HUB_VAPID_SUBJECT: ${HUB_VAPID_SUBJECT:-}
       HUB_TRUSTED_PROXY_HOPS: ${HUB_TRUSTED_PROXY_HOPS:-1}
       HUB_ALLOW_PRIVATE_WEBHOOKS: ${HUB_ALLOW_PRIVATE_WEBHOOKS:-}
     volumes:

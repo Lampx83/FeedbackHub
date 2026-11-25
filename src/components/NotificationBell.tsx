@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { withBase } from "@/lib/base-path";
 import { api } from "./api";
 import { timeAgo } from "./format";
 import { useLoader } from "./useLoader";
@@ -12,6 +13,11 @@ type Item = { key: string; type: "new" | "reply"; id: string; title: string; kin
 type Feed = { unread: number; items: Item[] };
 
 const LS_DESKTOP = "hub-desktop-notify";
+const urlB64 = (b: string) => {
+  const raw = atob((b + "=".repeat((4 - (b.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+};
+const pushSupported = () => typeof navigator !== "undefined" && "serviceWorker" in navigator && typeof PushManager !== "undefined" && typeof Notification !== "undefined";
 const safeGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const safeSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
 
@@ -23,9 +29,25 @@ export function NotificationBell() {
   // Chỉ dùng bên trong khung đã mở (không có trong HTML ban đầu) nên khác nhau giữa máy chủ/trình duyệt không gây lệch hydration.
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission));
   const [desktopOn, setDesktopOn] = useState(() => safeGet(LS_DESKTOP) === "1");
+  // Thông báo đẩy (Web Push): tới cả khi đã đóng mọi tab. Máy chủ chỉ bật khi có khoá VAPID.
+  const push = useLoader<{ enabled: boolean; publicKey?: string }>("/api/admin/push");
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushErr, setPushErr] = useState<string | null>(null);
   const prev = useRef<Set<string> | null>(null);
   const wasOpen = useRef(false);
   const unread = data?.unread ?? 0;
+
+  useEffect(() => {
+    if (!pushSupported() || !push.data?.enabled) return;
+    let alive = true;
+    void (async () => {
+      const reg = await navigator.serviceWorker.getRegistration(withBase("/"));
+      const sub = await reg?.pushManager.getSubscription();
+      if (alive) setPushOn(Boolean(sub) && Notification.permission === "granted");
+    })().catch(() => {});
+    return () => { alive = false; };
+  }, [push.data?.enabled]);
 
   // Tiêu đề tab "(3) …" để thấy ngay cả khi đang ở tab khác. Mỗi lần chuyển trang Next đặt lại tiêu đề nên áp lại.
   useEffect(() => {
@@ -37,7 +59,7 @@ export function NotificationBell() {
   useEffect(() => {
     if (!data) return;
     const ids = new Set(data.items.map((i) => i.key));
-    if (prev.current && desktopOn && perm === "granted") {
+    if (prev.current && desktopOn && perm === "granted" && !pushOn) {
       for (const it of data.items.filter((i) => i.unread && !prev.current!.has(i.key)).slice(0, 3)) {
         try {
           const label = it.type === "reply" ? "Trả lời mới" : it.kind === "bug" ? "Báo lỗi mới" : "Góp ý mới";
@@ -46,7 +68,7 @@ export function NotificationBell() {
       }
     }
     prev.current = ids;
-  }, [data, desktopOn, perm]);
+  }, [data, desktopOn, perm, pushOn]);
 
   // Đóng khung thì coi như đã đọc.
   useEffect(() => {
@@ -68,6 +90,37 @@ export function NotificationBell() {
     const on = r === "granted";
     setDesktopOn(on);
     safeSet(LS_DESKTOP, on ? "1" : "0");
+  }
+  async function enablePush() {
+    if (!push.data?.publicKey) return;
+    setPushBusy(true);
+    setPushErr(null);
+    try {
+      if ((await Notification.requestPermission()) !== "granted") throw new Error("Trình duyệt chưa cho phép thông báo.");
+      setPerm("granted");
+      const reg = await navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/") });
+      await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64(push.data.publicKey) }));
+      const r = await api("/api/admin/push", { method: "POST", body: sub.toJSON() });
+      if (!r.ok) throw new Error(r.error);
+      setPushOn(true);
+    } catch (e) {
+      setPushErr(e instanceof Error ? e.message : "Không bật được thông báo đẩy.");
+    }
+    setPushBusy(false);
+  }
+  async function disablePush() {
+    setPushBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.getRegistration(withBase("/"));
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        await api("/api/admin/push", { method: "DELETE", body: { endpoint: sub.endpoint } });
+        await sub.unsubscribe();
+      }
+      setPushOn(false);
+    } catch { /* bỏ qua */ }
+    setPushBusy(false);
   }
   function disableDesktop() {
     setDesktopOn(false);
@@ -115,6 +168,16 @@ export function NotificationBell() {
               ))}
             </ul>
             <div className="border-t border-line px-4 py-2.5 text-[13px]">
+              {push.data?.enabled && pushSupported() ? (
+                <div className="mb-2 border-b border-line pb-2">
+                  {pushOn ? (
+                    <button type="button" disabled={pushBusy} onClick={() => void disablePush()} className="text-muted hover:text-fg hover:underline">Đang nhận thông báo đẩy trên thiết bị này · Tắt</button>
+                  ) : (
+                    <button type="button" disabled={pushBusy} onClick={() => void enablePush()} className="font-medium text-brand hover:underline">{pushBusy ? "Đang bật…" : "Bật thông báo đẩy (nhận cả khi đóng tab)"}</button>
+                  )}
+                  {pushErr ? <p className="mt-1 text-[12px] text-danger">{pushErr}</p> : null}
+                </div>
+              ) : null}
               {perm === "unsupported" ? (
                 <span className="text-muted">Trình duyệt này không hỗ trợ thông báo trên màn hình.</span>
               ) : perm === "denied" ? (
@@ -124,7 +187,7 @@ export function NotificationBell() {
               ) : (
                 <button type="button" onClick={() => void enableDesktop()} className="font-medium text-brand hover:underline">Bật thông báo trên màn hình</button>
               )}
-              <p className="mt-1 text-[12px] text-muted">Hiện khi hub đang mở trong một tab. Để nhận cả khi đóng, bật email hoặc webhook ở cài đặt dự án → tab “Thông báo”.</p>
+              <p className="mt-1 text-[12px] text-muted">Thông báo trên màn hình chỉ hiện khi hub đang mở trong một tab. Để nhận cả khi đóng, bật thông báo đẩy ở trên, hoặc email/webhook ở cài đặt dự án → tab “Thông báo”.</p>
             </div>
           </div>
         </>

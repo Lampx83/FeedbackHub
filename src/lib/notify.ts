@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { publicUrl } from "./env";
 import { assertPublicHttpUrl } from "./safe-url";
 import { prisma } from "./prisma";
+import { pushToAdmins } from "./push";
 import { KIND_LABEL } from "./status";
 
 export type NotifyConfig = { emails: string[]; webhookUrl: string | null; on: "all" | "bugs" | "off" };
@@ -39,6 +40,7 @@ export function notifyExternal(project: Project, fb: Feedback, event: NotifyEven
   const cfg = projectNotify(project);
   if (cfg.on === "off") return;
   if (cfg.on === "bugs" && fb.kind !== "bug") return;
+  void pushToAdmins(project, fb, event).catch(() => {});
   if (!cfg.emails.length && !cfg.webhookUrl) return;
   void sendAll(project, fb, event, cfg).catch(() => {});
 }

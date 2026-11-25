@@ -438,6 +438,25 @@ try {
   ok(!(await call("GET", `/api/admin/feedback?format=csv`, { cookie: O.cookie })).data.includes(evil), "xuất CSV: quản trị dự án khác không lấy được góp ý của dự án này");
   ok((await call("GET", `/api/admin/feedback?format=csv`, { key: W2 })).status === 401, "xuất CSV: khoá máy bị từ chối (401)");
 
+  // ── thông báo đẩy (Web Push): đăng ký thiết bị, chống endpoint lạ, quyền theo tài khoản ──
+  const pushInfo = await call("GET", "/api/admin/push", { cookie });
+  if (pushInfo.data.enabled) {
+    ok(typeof pushInfo.data.publicKey === "string" && pushInfo.data.publicKey.length > 40 && !JSON.stringify(pushInfo.data).includes("PRIVATE"), "thông báo đẩy: trả khoá công khai, không lộ khoá riêng");
+    ok((await call("GET", "/api/admin/push")).status === 401, "thông báo đẩy: cần đăng nhập (401)");
+    const subBody = (host) => ({ endpoint: `https://${host}/wpush/${tag}`, keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } });
+    ok((await call("POST", "/api/admin/push", { cookie, body: subBody("evil.example.com") })).status === 400, "thông báo đẩy: endpoint ngoài dịch vụ đẩy trình duyệt bị từ chối (chống SSRF)");
+    ok((await call("POST", "/api/admin/push", { cookie, body: { endpoint: `http://fcm.googleapis.com/x`, keys: subBody("x").keys } })).status === 400, "thông báo đẩy: endpoint không HTTPS bị từ chối");
+    ok((await call("POST", "/api/admin/push", { key: W2, body: subBody("fcm.googleapis.com") })).status === 401, "thông báo đẩy: khoá máy không đăng ký được (401)");
+    ok((await call("POST", "/api/admin/push", { cookie, body: subBody("fcm.googleapis.com") })).status === 200, "thông báo đẩy: đăng ký thiết bị");
+    ok((await call("GET", "/api/admin/push", { cookie })).data.devices >= 1, "thông báo đẩy: đếm được thiết bị đã đăng ký");
+    ok((await call("POST", "/api/admin/push", { cookie, body: subBody("fcm.googleapis.com") })).status === 200, "thông báo đẩy: đăng ký lại cùng thiết bị không nhân đôi");
+    ok((await call("DELETE", "/api/admin/push", { cookie: O.cookie, body: { endpoint: subBody("fcm.googleapis.com").endpoint } })).status === 200 && (await call("GET", "/api/admin/push", { cookie })).data.devices >= 1, "thông báo đẩy: tài khoản khác không huỷ được thiết bị của người khác");
+    ok((await call("DELETE", "/api/admin/push", { cookie, body: { endpoint: subBody("fcm.googleapis.com").endpoint } })).status === 200, "thông báo đẩy: huỷ đăng ký thiết bị");
+  } else {
+    ok((await call("POST", "/api/admin/push", { cookie, body: { endpoint: "https://fcm.googleapis.com/x", keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } } })).status === 503, "thông báo đẩy: máy chủ chưa có khoá VAPID thì báo 503");
+  }
+  ok((await fetch(`${HUB}/sw.js`)).status === 200, "service worker tải được công khai (/sw.js)");
+
   // ── thông báo: chuông trong bảng điều khiển + cấu hình email/webhook ──
   const feed0 = await call("GET", "/api/admin/notifications", { cookie });
   ok(feed0.status === 200 && Array.isArray(feed0.data.items) && typeof feed0.data.unread === "number", "chuông thông báo trả danh sách + số chưa đọc");
