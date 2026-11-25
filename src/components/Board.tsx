@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { FeedbackDrawer } from "./FeedbackDrawer";
 import { timeAgo } from "./format";
-import { Alert, EmptyState, KindBadge, PageHeader, SearchInput, Select, StatusBadge, Toolbar } from "./ui/primitives";
+import { Alert, Button, EmptyState, KindBadge, PageHeader, SearchInput, Select, StatusBadge, Toolbar } from "./ui/primitives";
 import { KINDS, KIND_LABEL, OPEN_STATUSES, STATUSES, STATUS_LABEL } from "@/lib/status";
 
 type Item = {
@@ -37,6 +37,10 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
   const [stats, setStats] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const reload = useRef<() => void>(() => {});
+  // Chọn nhiều để duyệt hàng loạt (chỉ các dòng chưa duyệt).
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNote, setBulkNote] = useState<string | null>(null);
 
   // Gõ xong 300ms mới gọi API.
   useEffect(() => {
@@ -92,6 +96,19 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
     };
   }, [project, status, kind, approval, dq]);
 
+  const pickable = (items ?? []).filter((i) => !i.approvedAt);
+  const chosen = pickable.filter((i) => picked.has(i.id)).map((i) => i.id);
+  async function bulkApprove() {
+    setBulkBusy(true);
+    setBulkNote(null);
+    const r = await api<{ changed: number; skipped: unknown[] }>("/api/admin/feedback/bulk", { method: "POST", body: { ids: chosen, approved: true } });
+    setBulkBusy(false);
+    if (!r.ok) return setError(r.error);
+    setBulkNote(`Đã duyệt ${r.data.changed} góp ý${r.data.skipped.length ? `, bỏ qua ${r.data.skipped.length} (không đủ quyền hoặc đã duyệt)` : ""}.`);
+    setPicked(new Set());
+    reload.current();
+  }
+
   const statusOptions = useMemo(() => {
     const openCount = OPEN_STATUSES.reduce((n, s) => n + (stats[s] ?? 0), 0);
     const total = Object.values(stats).reduce((a, b) => a + b, 0);
@@ -144,6 +161,16 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
       />
 
       {error ? <Alert tone="error" className="mb-3">{error}</Alert> : null}
+      {bulkNote ? <Alert tone="ok" className="mb-3">{bulkNote}</Alert> : null}
+      {chosen.length > 0 ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm">
+          <span className="font-medium">Đã chọn {chosen.length} góp ý</span>
+          <Button size="sm" disabled={bulkBusy} onClick={() => void bulkApprove()}>{bulkBusy ? "Đang duyệt…" : "Duyệt để AI xử lý"}</Button>
+          <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>Bỏ chọn</Button>
+        </div>
+      ) : pickable.length > 1 ? (
+        <div className="mb-2 text-[13px]"><button type="button" className="text-brand hover:underline" onClick={() => setPicked(new Set(pickable.map((i) => i.id)))}>Chọn {pickable.length} góp ý chưa duyệt</button></div>
+      ) : null}
       {items === null && !error ? (
         <p className="py-10 text-center text-sm text-muted">Đang tải…</p>
       ) : items && items.length === 0 ? (
@@ -151,8 +178,11 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
       ) : items ? (
         <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {items.map((it) => (
-            <li key={it.id}>
-              <button type="button" onClick={() => setOpenId(it.id)} className={`block w-full px-4 py-3 text-left transition hover:bg-surface-2 ${openId === it.id ? "bg-surface-2" : ""}`}>
+            <li key={it.id} className="flex items-start">
+              {!it.approvedAt ? (
+                <input type="checkbox" aria-label={`Chọn: ${it.title}`} className="ml-4 mt-4 size-4 shrink-0" checked={picked.has(it.id)} onChange={() => setPicked((s) => { const n = new Set(s); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; })} />
+              ) : <span className="ml-4 w-4 shrink-0" />}
+              <button type="button" onClick={() => setOpenId(it.id)} className={`block min-w-0 flex-1 px-3 py-3 text-left transition hover:bg-surface-2 ${openId === it.id ? "bg-surface-2" : ""}`}>
                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                   <span className="min-w-0 flex-1 basis-64 break-words font-medium leading-snug">{it.title}</span>
                   <span className="flex shrink-0 items-center gap-1.5">

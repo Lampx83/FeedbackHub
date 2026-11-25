@@ -45,6 +45,7 @@ const patch = z
       models: z.array(z.object({ id: z.string().min(1).max(60), label: z.string().min(1).max(40) })).max(10),
       textSelection: z.boolean(),
       requireApproval: z.boolean(),
+      autoApproveRoles: z.array(z.string().trim().min(1).max(50)).max(20),
       // Bộ chọn CSS (widget dùng trong try/catch, không chèn vào HTML). Chặn ký tự điều khiển và ngoặc nhọn cho chắc.
       selectionScope: z.string().max(200).regex(/^[^<>\p{Cc}]*$/u, "Bộ chọn CSS không hợp lệ"),
       selectionRoles: z.array(z.string().trim().min(1).max(50)).max(20),

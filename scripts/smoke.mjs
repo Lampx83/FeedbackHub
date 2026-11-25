@@ -389,6 +389,41 @@ try {
   ok((await call("GET", `/api/admin/feedback?project=${slug}&approval=approved`, { cookie })).data.items.every((i) => i.id === rid), "bảng quản trị lọc đã duyệt");
   ok((await call("GET", `/api/admin/feedback?project=${slug}&approval=pending`, { cookie })).data.items.every((i) => i.id !== rid), "bảng quản trị lọc chưa duyệt không có góp ý đã duyệt");
   ok((await call("PATCH", `/api/admin/feedback/${rid}`, { cookie, body: { approved: false } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 403, "bỏ duyệt thì AI lại không thấy");
+
+  // ── "Cần bạn quyết định" + duyệt hàng loạt + quy tắc tự duyệt (người quyết, máy không được) ──
+  const inbox0 = await call("GET", `/api/admin/inbox?project=${slug}`, { cookie });
+  const inboxHit = inbox0.data.items?.find((i) => i.id === rid);
+  ok(inbox0.status === 200 && inboxHit?.reason === "approval" && inboxHit.manage === true && inbox0.data.counts.approval >= 1, "hộp thư quyết định: góp ý chưa duyệt hiện ở nhóm “chờ duyệt”", JSON.stringify(inbox0.data).slice(0, 160));
+  const inboxV = await call("GET", `/api/admin/inbox?project=${slug}`, { cookie: V.cookie });
+  ok(inboxV.data.items?.find((i) => i.id === rid)?.manage === false, "hộp thư: người chỉ xem thấy nhưng không có quyền xử lý (manage=false)");
+  ok(!(await call("GET", "/api/admin/inbox", { cookie: O.cookie })).data.items.some((i) => i.id === rid), "hộp thư: quản trị dự án khác không thấy góp ý của dự án này");
+  ok((await call("GET", "/api/admin/inbox")).status === 401, "hộp thư cần đăng nhập (401)");
+  ok((await call("GET", "/api/admin/inbox", { key: W2 })).status === 401, "khoá máy không đọc được hộp thư (401)");
+  ok((await call("POST", "/api/admin/feedback/bulk", { key: W2, body: { ids: [rid], approved: true } })).status === 401, "khoá máy không duyệt hàng loạt được (401)");
+  const bulkV = await call("POST", "/api/admin/feedback/bulk", { cookie: V.cookie, body: { ids: [rid], approved: true } });
+  ok(bulkV.status === 200 && bulkV.data.changed === 0 && bulkV.data.skipped[0]?.reason === "không đủ quyền", "duyệt hàng loạt: người chỉ xem bị bỏ qua, không duyệt được", JSON.stringify(bulkV.data));
+  const bulkO = await call("POST", "/api/admin/feedback/bulk", { cookie: O.cookie, body: { ids: [rid], approved: true } });
+  ok(bulkO.data.changed === 0, "duyệt hàng loạt: quản trị dự án khác không duyệt được");
+  ok((await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [], approved: true } })).status === 400, "duyệt hàng loạt: danh sách rỗng bị từ chối (400)");
+  const mkFb = async (title) => (await call("POST", "/api/v1/feedback", { token: admin, body: { title } })).data.feedback?.id;
+  const [b1, b2] = [await mkFb(`Hàng loạt 1 ${tag}`), await mkFb(`Hàng loạt 2 ${tag}`)];
+  const bulk = await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [b1, b2, "khong-co-id"], approved: true } });
+  ok(bulk.status === 200 && bulk.data.changed === 2 && bulk.data.skipped.length === 1, "duyệt hàng loạt: duyệt 2, báo 1 mã không có", JSON.stringify(bulk.data));
+  ok((await call("GET", `/api/v1/machine/feedback/${b1}`, { key: R })).status === 200, "sau duyệt hàng loạt: AI thấy góp ý");
+  const bulkEv = (await call("GET", `/api/admin/feedback/${b2}`, { cookie })).data.feedback;
+  ok(bulkEv.approvedBy && bulkEv.events.some((e) => e.kind === "approval" && e.detail?.bulk === true), "duyệt hàng loạt: ghi người duyệt + nhật ký");
+  ok((await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [b1], approved: true } })).data.skipped[0]?.reason === "đã duyệt", "duyệt hàng loạt: góp ý đã duyệt được bỏ qua (idempotent)");
+  ok(!(await call("GET", `/api/admin/inbox?project=${slug}`, { cookie })).data.items.some((i) => i.id === b1), "hộp thư: góp ý đã duyệt không còn ở nhóm chờ duyệt");
+  // Quy tắc tự duyệt: chỉ áp khi vai trò khớp, ghi rõ "tự động" trong nhật ký; máy không đặt được.
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { autoApproveRoles: ["STAFF"] } } })).status === 200, "đặt quy tắc tự duyệt theo vai trò STAFF");
+  const autoYes = (await call("POST", "/api/v1/feedback", { token: staff, body: { title: `Tự duyệt theo vai trò ${tag}` } })).data.feedback?.id;
+  const autoNo = await mkFb(`Không tự duyệt ${tag}`);
+  const autoYesFb = (await call("GET", `/api/admin/feedback/${autoYes}`, { cookie })).data.feedback;
+  ok(!!autoYesFb.approvedAt && autoYesFb.approvedBy.startsWith("tự động") && autoYesFb.events.some((e) => e.kind === "approval" && e.detail?.rule === "vai trò STAFF"), "tự duyệt: vai trò khớp được duyệt ngay, nhật ký ghi quy tắc");
+  ok((await call("GET", `/api/v1/machine/feedback/${autoYes}`, { key: R })).status === 200, "tự duyệt: AI thấy góp ý ngay");
+  ok((await call("GET", `/api/v1/machine/feedback/${autoNo}`, { key: R })).status === 403, "tự duyệt: vai trò không khớp vẫn chờ người duyệt");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: V.cookie, body: { features: { autoApproveRoles: ["ADMIN"] } } })).status === 403, "người chỉ xem không đặt được quy tắc tự duyệt (403)");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { autoApproveRoles: [] } } })).status === 200, "gỡ quy tắc tự duyệt");
   ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { requireApproval: false } } })).status === 200 && (await call("GET", `/api/v1/machine/feedback/${rid}`, { key: R })).status === 200, "tắt cổng duyệt thì hành vi trở lại như cũ");
 
   // ── thông báo: chuông trong bảng điều khiển + cấu hình email/webhook ──

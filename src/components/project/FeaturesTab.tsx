@@ -44,18 +44,28 @@ export function FeaturesTab({ project, save }: { project: ProjectData; save: Sav
 /** Cổng duyệt: AI chỉ thấy góp ý đã được quản trị dự án duyệt. */
 function ApprovalSection({ project, save }: { project: ProjectData; save: Save }) {
   const cur = project.features.requireApproval ?? false;
+  const curRoles = project.features.autoApproveRoles ?? [];
   const [v, setV] = useState(cur);
+  const [roles, setRoles] = useState<string[]>(curRoles);
   const bar = useSaveBar(save);
+  const dirty = v !== cur || roles.join("\n") !== curRoles.join("\n");
   return (
     <Card className="p-5">
       <h2 className="text-base font-semibold">Duyệt góp ý trước khi AI xử lý</h2>
       <p className="mt-1 text-sm leading-relaxed text-muted">
-        Quản trị dự án đọc từng góp ý rồi bấm “Duyệt để AI xử lý” trong khung chi tiết (mục “Góp ý”). Khi bật, mọi khoá của AI (khoá chỉ đọc, khoá worker) <strong>chỉ thấy góp ý đã duyệt</strong>: góp ý chưa duyệt không xuất hiện trong danh sách, hàng đợi hay khi gọi theo mã. Nhờ vậy người lạ không thể đưa lời chèn lệnh vào tay AI, và bạn quyết định góp ý nào đáng làm. Khoá operator vẫn thấy tất cả.
+        Quản trị dự án đọc từng góp ý rồi bấm “Duyệt để AI xử lý” trong khung chi tiết (mục “Góp ý”), hoặc duyệt hàng loạt ở mục “Cần quyết định”. Khi bật, mọi khoá của AI (khoá chỉ đọc, khoá worker) <strong>chỉ thấy góp ý đã duyệt</strong>: góp ý chưa duyệt không xuất hiện trong danh sách, hàng đợi hay khi gọi theo mã. Nhờ vậy người lạ không thể đưa lời chèn lệnh vào tay AI, và bạn quyết định góp ý nào đáng làm. Khoá operator vẫn thấy tất cả.
       </p>
       <div className="mt-2">
         <Switch checked={v} onChange={setV} label="Cần duyệt trước khi AI thấy" description="Tắt = AI thấy mọi góp ý như trước (người gửi vẫn thấy góp ý của mình, quản trị vẫn thấy tất cả)." />
       </div>
-      <SaveBar dirty={v !== cur} busy={bar.busy} error={bar.error} saved={bar.saved} onSave={() => void bar.run({ features: { requireApproval: v } })} onReset={() => setV(cur)} />
+      {v ? (
+        <div className="mt-4">
+          <Field label="Tự duyệt theo vai trò" hint="Góp ý của người có vai trò (role trong token của ứng dụng chủ) nằm trong danh sách này được duyệt ngay, ghi là “tự động (quy tắc)” trong nhật ký. Chỉ nên cho các vai trò mà bạn tin, vd. giảng viên, nhân sự nội bộ — đừng thêm vai trò mà người lạ có thể tự nhận. Để trống = mọi góp ý đều chờ người duyệt.">
+            <TagsInput value={roles} onChange={setRoles} placeholder="vd. INSTRUCTOR  (Enter để thêm)" />
+          </Field>
+        </div>
+      ) : null}
+      <SaveBar dirty={dirty} busy={bar.busy} error={bar.error} saved={bar.saved} onSave={() => void bar.run({ features: { requireApproval: v, autoApproveRoles: roles } })} onReset={() => { setV(cur); setRoles(curRoles); }} />
     </Card>
   );
 }

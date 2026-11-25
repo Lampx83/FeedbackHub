@@ -56,6 +56,7 @@ Mọi thứ người dùng gõ — tiêu đề, mô tả, tin nhắn, đoạn ch
 - **Giới hạn tần suất nằm trong bộ nhớ một tiến trình.** Chạy nhiều bản hub song song thì mỗi bản đếm riêng; cần Redis hoặc bảng DB nếu mở rộng.
 - **Webhook không gửi lại.** Ứng dụng chủ đang bảo trì sẽ bỏ lỡ sự kiện (widget vẫn thấy vì tự hỏi định kỳ).
 - **Một khoá ký cho mỗi dự án.** Đổi khoá làm token cũ hỏng ngay; chưa hỗ trợ hai khoá song song để đổi không gián đoạn.
+- **Quy tắc tự duyệt (`autoApproveRoles`) là sự đánh đổi do quản trị dự án chọn:** `role` nằm trong token do ứng dụng chủ ký, nên chỉ thêm vai trò mà người lạ không thể tự nhận. Góp ý tự duyệt vẫn là dữ liệu không đáng tin (xem quy tắc 5) — chỉ khác là AI được thấy ngay. Mọi lần tự duyệt đều có sự kiện `approval` ghi rõ quy tắc.
 - **Khoá operator và MCP không bị cổng duyệt chặn** (chủ ý: đó là Claude làm tay dưới sự giám sát của người). Cổng `requireApproval` chỉ chặn khoá worker/reader; hàng đợi Hỏi đáp (chỉ trả lời, không sửa mã) cũng không qua cổng. Tin nhắn người gửi thêm **sau** khi duyệt vẫn tới được AI — đó là luồng hỏi–đáp bình thường; nếu cần chặt hơn hãy bỏ duyệt rồi duyệt lại.
 - **Thông báo email/chat gửi trong tiến trình** (không hàng đợi, không gửi lại): hub tắt giữa chừng thì mất thông báo đó; chuông trong bảng điều khiển luôn đầy đủ vì tính từ CSDL.
 - **Chưa kiểm định bảo mật độc lập.** Có kiểm thử đầu-cuối cho các luồng chính nhưng chưa có kiểm thử xâm nhập. Dự án chạm dữ liệu nhạy cảm nên được rà soát trước khi mở công khai.

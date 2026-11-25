@@ -3,6 +3,7 @@
  * `transition()` để Event và webhook không bao giờ bị bỏ sót (DGXL từng phải dùng trigger DB vì
  * agent ghi thẳng bằng SQL; ở hub agent chỉ gọi API nên chặn được ở đây).
  */
+import { AUTO_APPROVER, autoApproveRule } from "./approval";
 import { notifyExternal } from "./notify";
 import type { Feedback, Prisma, Project } from "@prisma/client";
 import { decrypt, hmacHex } from "./crypto";
@@ -70,6 +71,8 @@ export async function createFeedback(project: Project, reporter: Reporter, input
   const system = input.scope === "system";
   const pagePath = system ? null : (input.pagePath ?? null);
   const pageTarget = system ? null : (input.pageTarget ?? null);
+  // Quy tắc tự duyệt do quản trị dự án đặt (vd. giảng viên gửi thì khỏi chờ). Vẫn ghi vào nhật ký để truy vết.
+  const autoRule = autoApproveRule(project, reporter.role, input.source);
   const fb = await prisma.feedback.create({
     data: {
       projectId: project.id,
@@ -95,7 +98,13 @@ export async function createFeedback(project: Project, reporter: Reporter, input
       planApproval: input.requirePlan ? "requested" : null,
       aiProvider: input.aiProvider ?? null,
       aiModel: input.aiModel ?? null,
-      events: { create: { kind: "created", toStatus: "pending", actor: "human" } },
+      ...(autoRule ? { approvedAt: new Date(), approvedBy: AUTO_APPROVER } : {}),
+      events: {
+        create: [
+          { kind: "created", toStatus: "pending", actor: "human" },
+          ...(autoRule ? [{ kind: "approval", actor: "human", detail: { approved: true, by: AUTO_APPROVER, rule: autoRule } }] : []),
+        ],
+      },
     },
   });
   // Báo cho người phụ trách (email/webhook theo cấu hình dự án). Máy tự lập (source=system|import) thì không báo.

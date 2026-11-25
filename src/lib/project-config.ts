@@ -32,6 +32,11 @@ export type Features = {
    * lời chèn lệnh) không bao giờ tới AI. Khoá operator vẫn thấy tất cả.
    */
   requireApproval: boolean;
+  /**
+   * Quy tắc tự duyệt (chỉ có nghĩa khi requireApproval bật): góp ý của người có `role` (trong token) thuộc danh sách này
+   * được duyệt ngay lúc gửi, ghi nhận là "tự động" trong nhật ký. Do quản trị dự án đặt; máy không đặt được. Rỗng = tắt.
+   */
+  autoApproveRoles: string[];
 };
 
 export const DEFAULT_FEATURES: Features = {
@@ -48,6 +53,7 @@ export const DEFAULT_FEATURES: Features = {
   selectionRoles: [],
   hidePaths: [],
   requireApproval: false,
+  autoApproveRoles: [],
 };
 
 export function projectTypes(p: Pick<Project, "types">): TypeDef[] {

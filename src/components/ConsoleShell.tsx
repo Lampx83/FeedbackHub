@@ -5,9 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { api } from "./api";
 import { NotificationBell } from "./NotificationBell";
+import { useLoader } from "./useLoader";
 
 const NAV: readonly { href: string; label: string; icon: string; superOnly?: boolean }[] = [
   { href: "/", label: "Tổng quan", icon: "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V11z" },
+  { href: "/inbox", label: "Cần quyết định", icon: "M4 13h4l2 3h4l2-3h4M4 13V6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v7M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" },
   { href: "/board", label: "Góp ý", icon: "M4 5h16v11H8l-4 4V5z" },
   { href: "/keys", label: "Khoá operator", icon: "M15 7a4 4 0 1 1-3.9 4.9L4 19v2h3v-2h2v-2h2l1.9-1.9A4 4 0 0 1 15 7z", superOnly: true },
   { href: "/users", label: "Tài khoản", icon: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1", superOnly: true },
@@ -43,6 +45,9 @@ export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { 
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const desktop = useIsDesktop();
+  // Số việc chờ người quyết — hiện thành huy hiệu cạnh mục "Cần quyết định" (1 phút làm mới một lần).
+  const inbox = useLoader<{ counts: { total: number } }>("/api/admin/inbox", 60000);
+  const pending = inbox.data?.counts.total ?? 0;
 
   async function logout() {
     await api("/api/admin/logout", { method: "POST", body: {} });
@@ -66,6 +71,7 @@ export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { 
           >
             <Icon d={n.icon} />
             {n.label}
+            {n.href === "/inbox" && pending > 0 ? <span className="ml-auto rounded-full bg-brand px-1.5 text-[11px] font-semibold leading-5 text-white" aria-label={`${pending} việc đang chờ`}>{pending > 99 ? "99+" : pending}</span> : null}
           </Link>
         );
       })}
