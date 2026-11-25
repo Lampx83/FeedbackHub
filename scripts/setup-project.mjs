@@ -2,7 +2,7 @@
 /**
  * Tạo (hoặc cập nhật) một dự án trên hub từ tệp JSON — để cấu hình lặp lại được, không phải bấm tay.
  *
- *   HUB_URL=https://feedback.example.com HUB_ADMIN_EMAIL=… HUB_ADMIN_PASSWORD=… \
+ *   HUB_URL=https://feedback.example.com HUB_ADMIN_TOKEN=fhk_a_…   (token cá nhân cấp ở Tài khoản của tôi; hoặc HUB_ADMIN_EMAIL + HUB_ADMIN_PASSWORD) \
  *   node scripts/setup-project.mjs <project.json> [--print-secret] [--worker-key "nhãn"]
  *
  * project.json: { "slug", "name", "allowedOrigins", "adminRoles", "submitRoles", "anonymousSubmit", "mode", "deliver",
@@ -18,9 +18,9 @@ const { values: opt, positionals } = parseArgs({
   options: { "print-secret": { type: "boolean" }, "worker-key": { type: "string" } },
 });
 const hub = (process.env.HUB_URL || "").replace(/\/$/, "");
-const email = process.env.HUB_ADMIN_EMAIL, password = process.env.HUB_ADMIN_PASSWORD;
-if (!hub || !email || !password || !positionals[0]) {
-  console.error("Dùng: HUB_URL=… HUB_ADMIN_EMAIL=… HUB_ADMIN_PASSWORD=… node scripts/setup-project.mjs <project.json> [--print-secret] [--worker-key nhãn]");
+const email = process.env.HUB_ADMIN_EMAIL, password = process.env.HUB_ADMIN_PASSWORD, token = process.env.HUB_ADMIN_TOKEN;
+if (!hub || !(token || (email && password)) || !positionals[0]) {
+  console.error("Dùng: HUB_URL=… (HUB_ADMIN_TOKEN=fhk_a_… | HUB_ADMIN_EMAIL=… HUB_ADMIN_PASSWORD=…) node scripts/setup-project.mjs <project.json> [--print-secret] [--worker-key nhãn]");
   process.exit(1);
 }
 const cfg = JSON.parse(fs.readFileSync(positionals[0], "utf8"));
@@ -30,7 +30,7 @@ let cookie = "";
 async function api(method, path, body) {
   const res = await fetch(hub + path, {
     method,
-    headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(cookie ? { Cookie: cookie } : {}) },
+    headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(cookie ? { Cookie: cookie } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const set = res.headers.getSetCookie?.() ?? [];
@@ -40,7 +40,7 @@ async function api(method, path, body) {
   return data;
 }
 
-await api("POST", "/api/admin/login", { email, password });
+if (!token) await api("POST", "/api/admin/login", { email, password });
 const { slug, name, allowedOrigins, submitRoles, adminRoles, ...rest } = cfg;
 const list = await api("GET", "/api/admin/projects");
 let created = false;

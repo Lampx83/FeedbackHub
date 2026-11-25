@@ -177,6 +177,8 @@ Tách khỏi `adminRoles` (vai trò của người dùng cuối trong ứng dụ
 
 Mọi route `/api/admin/**` kiểm quyền theo dự án (xem [API.md §3](API.md)); dự án không được gán trả 404. Khoá tài khoản (`disabled`) và đổi/đặt lại mật khẩu (`sessionsValidAfter`) huỷ phiên đang mở ngay. Hub luôn giữ ≥ 1 quản trị toàn hub hoạt động.
 
+Tự động hoá (CLI, script, Claude Code) dùng **token cá nhân** `fhk_a_…` (bảng `AdminToken`, cấp ở trang *Tài khoản của tôi*) thay vì mật khẩu: cùng quyền với chủ tài khoản, có hạn, thu hồi được; việc cấp/thu hồi token và đổi mật khẩu chỉ làm được qua phiên đăng nhập.
+
 ### 5.3c Duyệt góp ý (cổng cho AI)
 
 Mỗi góp ý có `approvedAt`/`approvedBy`, do **quản trị dự án** (`manager` hoặc quản trị toàn hub) đặt qua `PATCH /api/admin/feedback/{id} { approved }` — ghi sự kiện `approval`. Dự án bật `features.requireApproval` thì khoá worker/reader (AI) **chỉ thấy góp ý đã duyệt**; góp ý chưa duyệt — nội dung không đáng tin — không bao giờ tới AI (chặn ở `machineFeedback`, hàng đợi và danh sách). Duyệt độc lập với trạng thái xử lý; máy không đặt được. Mặc định tắt.

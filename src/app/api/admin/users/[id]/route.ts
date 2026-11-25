@@ -46,6 +46,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 
   await prisma.$transaction([
+    // Đặt lại mật khẩu hoặc khoá tài khoản → thu hồi luôn token cá nhân của người đó.
+    ...(v.password !== undefined || v.disabled === true ? [prisma.adminToken.updateMany({ where: { adminId: id, revokedAt: null }, data: { revokedAt: new Date() } })] : []),
     ...(rows || v.superAdmin === true ? [prisma.projectMember.deleteMany({ where: { adminId: id } })] : []),
     prisma.adminUser.update({
       where: { id },

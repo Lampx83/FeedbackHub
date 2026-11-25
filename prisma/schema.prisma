@@ -11,6 +11,23 @@ datasource db {
 }
 
 /// Người đăng nhập bảng điều khiển của hub (không phải người dùng của các ứng dụng).
+/// Token truy cập cá nhân (fhk_a_…) cho CLI/script/Claude Code: hành động đúng với quyền của chủ tài khoản,
+/// thay cho việc gõ mật khẩu. Chỉ lưu băm; hiện một lần lúc cấp; có hạn; thu hồi được.
+model AdminToken {
+  id         String    @id @default(cuid())
+  adminId    String
+  admin      AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  label      String
+  prefix     String
+  hash       String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([adminId])
+}
+
 model AdminUser {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -26,6 +43,7 @@ model AdminUser {
   sessionsValidAfter DateTime?
   /// Lần cuối bấm "đã đọc" ở chuông thông báo; góp ý/trả lời mới hơn mốc này là chưa đọc.
   notifSeenAt DateTime?
+  tokens      AdminToken[]
   memberships        ProjectMember[]
 }
 

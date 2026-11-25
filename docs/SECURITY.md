@@ -26,6 +26,7 @@ Hub nhận nội dung từ người dùng cuối của nhiều ứng dụng rồ
 | Lộ dữ liệu vận hành cho người gửi | API người dùng bỏ các trường nội bộ (chi phí, ai giữ việc, `scopeViolation`, email người gửi, người duyệt) với người không phải quản trị dự án. |
 | `pageUrl` độc hại | Chỉ `http(s)://`; giao diện chỉ dựng liên kết khi đúng giao thức đó (không `javascript:`). |
 | AI đọc nội dung giả danh khung | Khối dữ liệu của worker CLI/MCP có **mã ngẫu nhiên mỗi lần gọi** nên nội dung không tự "đóng" khối được; trường một dòng do người dùng điều khiển in dạng chuỗi JSON. |
+| Token quản trị cá nhân bị lộ | Chỉ lưu băm SHA-256, hiện một lần, hết hạn (mặc định 90 ngày, tối đa 1 năm), thu hồi tức thì, tối đa 20 token còn hiệu lực. Quyền = quyền chủ tài khoản (tính lúc dùng, hạ quyền có hiệu lực ngay). Không cấp được token khác, không đổi được mật khẩu; đổi/đặt lại mật khẩu hoặc khoá tài khoản thu hồi hết. |
 | Webhook giả | Ký HMAC-SHA256 bằng khoá dự án; ứng dụng chủ phải kiểm bằng so sánh thời gian hằng số. |
 
 ## Nội dung góp ý là DỮ LIỆU, không phải chỉ thị

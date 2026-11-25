@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
 import { BASE_PATH } from "./base-path";
+import { sha256 } from "./crypto";
 import { authSecret } from "./env";
 import { fail } from "./http";
 import { prisma } from "./prisma";
@@ -55,7 +56,28 @@ export async function isCrossSiteRequest(): Promise<boolean> {
   return Boolean(site) && site !== "same-origin" && site !== "none";
 }
 
-export async function requireAdminApi() {
+export const ADMIN_TOKEN_PREFIX = "fhk_a_";
+
+/** Quản trị viên xác thực bằng token cá nhân (`Authorization: Bearer fhk_a_…`), hoặc null. Chỉ lưu băm; hết hạn/thu hồi/khoá tài khoản → null. */
+async function tokenAdmin() {
+  const m = (await headers()).get("authorization")?.match(/^Bearer\s+(fhk_a_[A-Za-z0-9_-]{20,})$/);
+  if (!m) return null;
+  const t = await prisma.adminToken.findUnique({ where: { hash: sha256(m[1]) }, include: { admin: true } });
+  if (!t || t.revokedAt || t.expiresAt.getTime() < Date.now() || t.admin.disabled) return null;
+  if (!t.lastUsedAt || Date.now() - t.lastUsedAt.getTime() > 60_000) void prisma.adminToken.update({ where: { id: t.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
+  return t.admin;
+}
+
+/**
+ * Xác thực API quản trị: cookie đăng nhập (trình duyệt) hoặc token cá nhân (CLI/script — tự động hoá không phải gõ mật khẩu).
+ * `sessionOnly`: chỉ chấp nhận cookie — dùng cho việc nhạy cảm (cấp/thu hồi token, đổi mật khẩu) để token bị lộ không tự sinh thêm token.
+ */
+export async function requireAdminApi(opts: { sessionOnly?: boolean } = {}) {
+  const hasCookie = Boolean((await cookies()).get(SESSION_COOKIE)?.value);
+  if (!hasCookie && !opts.sessionOnly) {
+    const viaToken = await tokenAdmin();
+    if (viaToken) return { ok: true, admin: viaToken } as const;
+  }
   if (await isCrossSiteRequest()) return { ok: false, response: fail(403, "Yêu cầu từ trang khác không được chấp nhận") } as const;
   const admin = await currentAdmin();
   return admin ? ({ ok: true, admin } as const) : ({ ok: false, response: fail(401, "Chưa đăng nhập") } as const);

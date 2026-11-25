@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: pw
+          POSTGRES_DB: feedbackhub
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:pw@localhost:5432/feedbackhub
+      AUTH_SECRET: ci-auth-secret-0123456789abcdef0123456789abcdef
+      HUB_ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef
+      HUB_ADMIN_EMAIL: admin@example.com
+      HUB_ADMIN_PASSWORD: admin123
+      HUB_TRUSTED_PROXY_HOPS: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Kiểm tra kiểu và lint
+        run: npx tsc --noEmit && npm run lint
+      - name: Migration + dữ liệu khởi tạo
+        run: npx prisma migrate deploy && npm run db:seed
+      - name: Build
+        run: npm run build
+      - name: Smoke đầu-cuối
+        run: |
+          (npx next start -p 3100 > hub.log 2>&1 &)
+          for i in $(seq 1 40); do curl -sf http://localhost:3100/api/health && break; sleep 2; done
+          npm run smoke
+      - name: Worker
+        run: node worker/test.mjs
+      - name: MCP (khởi động lại hub để xoá bộ đếm giới hạn đăng nhập)
+        run: |
+          pkill -f "next start" || true
+          sleep 2
+          (npx next start -p 3100 >> hub.log 2>&1 &)
+          for i in $(seq 1 40); do curl -sf http://localhost:3100/api/health && break; sleep 2; done
+          cd mcp && npm ci && node test.mjs
+      - name: Log hub khi lỗi
+        if: failure()
+        run: tail -n 80 hub.log || true

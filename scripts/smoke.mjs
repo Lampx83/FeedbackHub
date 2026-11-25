@@ -444,6 +444,22 @@ try {
   const big = await fetch(HUB + "/api/v1/feedback", { method: "POST", headers: { Authorization: `Bearer ${staff}`, "Content-Type": "application/json" }, body: JSON.stringify({ title: "x".repeat(4), body: "y".repeat(3 * 1024 * 1024) }) });
   ok(big.status === 413 || big.status === 400, "thân yêu cầu quá lớn bị từ chối", String(big.status));
 
+  // ── token quản trị cá nhân ────────────────────────────────────────────────
+  const mkT = await call("POST", "/api/admin/me/tokens", { cookie, body: { label: "smoke-token", days: 7 } });
+  const AT = mkT.data.token;
+  ok(mkT.status === 200 && /^fhk_a_/.test(AT ?? ""), "cấp token cá nhân qua phiên đăng nhập");
+  ok((await call("GET", "/api/admin/projects", { headers: { Authorization: `Bearer ${AT}` } })).status === 200, "token cá nhân gọi được API quản trị không cần cookie");
+  ok((await call("POST", "/api/admin/me/tokens", { headers: { Authorization: `Bearer ${AT}` }, body: { label: "xin-them", days: 7 } })).status === 401, "token không tự cấp thêm token");
+  ok((await call("POST", "/api/admin/me/password", { headers: { Authorization: `Bearer ${AT}` }, body: { current: PASS, next: "Smoke-token-pw-1" } })).status === 401, "token không đổi được mật khẩu");
+  const tl = await call("GET", "/api/admin/me/tokens", { cookie });
+  ok(tl.status === 200 && tl.data.tokens.some((t) => t.label === "smoke-token") && !JSON.stringify(tl.data).includes(AT), "danh sách token không lộ giá trị");
+  ok((await call("GET", "/api/admin/projects", { headers: { Authorization: "Bearer fhk_a_khong-co-that-khong-co-that" } })).status === 401, "token sai bị từ chối");
+  const vt = await call("POST", "/api/admin/me/tokens", { cookie: V.cookie, body: { label: "smoke-viewer-token", days: 1 } });
+  const VT = vt.data.token;
+  ok((await call("GET", `/api/admin/projects/${slug}`, { headers: { Authorization: `Bearer ${VT}` } })).status === 200 && (await call("PATCH", `/api/admin/projects/${slug}`, { headers: { Authorization: `Bearer ${VT}` }, body: { name: "Doi ten bang token" } })).status === 403, "token của người chỉ xem vẫn chỉ xem được (quyền theo chủ tài khoản)");
+  ok((await call("DELETE", `/api/admin/me/tokens/${mkT.data.id}`, { cookie })).status === 200, "thu hồi token");
+  ok((await call("GET", "/api/admin/projects", { headers: { Authorization: `Bearer ${AT}` } })).status === 401, "token đã thu hồi mất hiệu lực ngay");
+
 } catch (e) {
   failures.push("NGOẠI LỆ: " + (e.stack || e));
   console.error(e);

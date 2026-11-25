@@ -10,3 +10,4 @@ worker/node_modules
 .DS_Store
 .claude/settings.local.json
 deploy/.listener-*/
+hub.log
