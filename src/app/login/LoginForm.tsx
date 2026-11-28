@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { api } from "@/components/api";
 import { Alert, Button, Card, Field, Input, Spinner } from "@/components/ui/primitives";
 import { GoogleButton } from "./GoogleButton";
@@ -40,11 +40,13 @@ export function LoginForm({ googleClientId }: { googleClientId?: string }) {
     router.refresh();
   }
 
-  // Google chỉ phục vụ nút trên https hoặc localhost.
-  const [googleOk, setGoogleOk] = useState(false);
-  useEffect(() => {
-    setGoogleOk(Boolean(googleClientId) && (window.location.protocol === "https:" || window.location.hostname === "localhost"));
-  }, [googleClientId]);
+  // Google chỉ phục vụ nút trên https hoặc localhost (đọc ở trình duyệt; lúc dựng trên máy chủ coi như chưa có).
+  const httpsOk = useSyncExternalStore(
+    () => () => {},
+    () => window.location.protocol === "https:" || window.location.hostname === "localhost",
+    () => false,
+  );
+  const googleOk = Boolean(googleClientId) && httpsOk;
 
   return (
     <Card className="p-5">
