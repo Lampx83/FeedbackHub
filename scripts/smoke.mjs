@@ -442,6 +442,20 @@ try {
   ok((await call("POST", `/api/admin/projects/${slug}/rotate-secret`, { cookie: BA.cookie })).status === 403, "BA không đổi khoá ký (403)");
   ok((await call("POST", "/api/admin/feedback", { cookie: BA.cookie, body: { ...reqBody, project: slugB } })).status === 404, "BA không tạo được yêu cầu ở dự án không được gán (404)");
   ok((await call("GET", "/api/admin/users", { cookie: BA.cookie })).status !== 200, "BA không xem được danh sách tài khoản");
+  // Hàng đợi theo ưu tiên + cấu hình AI-dev từ hub (chỉ thắt chặt, không lộ ra cấu hình công khai).
+  const qLow = await call("POST", "/api/admin/feedback", { cookie, body: { ...reqBody, title: `Ưu tiên thấp ${tag}`, priority: "low" } });
+  const qUrgent = await call("POST", "/api/admin/feedback", { cookie, body: { ...reqBody, title: `Ưu tiên khẩn ${tag}`, priority: "urgent" } });
+  const qOrder = (await call("GET", `/api/v1/machine/queue?project=${slug}`, { key: op.data.key })).data.items.map((i) => i.id);
+  ok(qOrder.indexOf(qUrgent.data.feedback?.id) !== -1 && qOrder.indexOf(qUrgent.data.feedback?.id) < qOrder.indexOf(qLow.data.feedback?.id), "hàng đợi: việc khẩn (tạo sau) đứng trước việc thấp (tạo trước)");
+  ok(qOrder.indexOf(qLow.data.feedback?.id) > qOrder.indexOf(baReq.data.feedback?.id), "hàng đợi: việc mức Cao/Bình thường đứng trước việc Thấp", JSON.stringify(qOrder.slice(0, 6)));
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { worker: { budgetUsd: 500, timeoutSec: null, instructions: "", boundaries: [] } } } })).status === 400, "cấu hình AI-dev: ngân sách quá trần bị từ chối (400)");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { worker: { budgetUsd: 2, timeoutSec: 10, instructions: "", boundaries: [] } } } })).status === 400, "cấu hình AI-dev: thời gian dưới 60 giây bị từ chối (400)");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: BA.cookie, body: { features: { worker: { budgetUsd: 2, timeoutSec: null, instructions: "x", boundaries: [] } } } })).status === 403, "BA không đặt được cấu hình AI-dev (403)");
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie, body: { features: { worker: { budgetUsd: 2.5, timeoutSec: 1800, instructions: "Chạy npm test trước khi commit", boundaries: ["Không đụng bảng điểm"] } } } })).status === 200, "quản trị dự án lưu cấu hình AI-dev");
+  const qHead = (await call("GET", `/api/v1/machine/queue?project=${slug}`, { key: op.data.key })).data.project;
+  ok(qHead?.worker?.budgetUsd === 2.5 && qHead.worker.timeoutSec === 1800 && qHead.worker.boundaries[0] === "Không đụng bảng điểm", "hàng đợi trả cấu hình AI-dev cho worker", JSON.stringify(qHead?.worker));
+  const pubCfg = await call("GET", `/api/v1/config?project=${slug}`);
+  ok(pubCfg.status === 200 && !JSON.stringify(pubCfg.data).includes("Chạy npm test") && pubCfg.data.features?.worker === undefined, "cấu hình công khai (widget) KHÔNG chứa cấu hình AI-dev");
   const mkFb = async (title) => (await call("POST", "/api/v1/feedback", { token: admin, body: { title } })).data.feedback?.id;
   const [b1, b2] = [await mkFb(`Hàng loạt 1 ${tag}`), await mkFb(`Hàng loạt 2 ${tag}`)];
   const bulk = await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [b1, b2, "khong-co-id"], approved: true } });

@@ -40,6 +40,10 @@ test.mjs            kiểm thử trọn vòng với agent giả (KHÔNG chạy c
 
 **Kiểm chứng lời khai** (`verify`): agent phải khai `--expected` một chuỗi quan sát được; worker tự tìm chuỗi đó — `{ "mode": "grep-build", "dir": ".next" }` (grep trong thư mục dựng của kho) hoặc `{ "mode": "cmd", "cmd": "docker exec app grep -rqF {expected} /app/.next" }` (`{expected}` được tự quote; mã thoát 0 = thấy). Không thấy → `verifyResult: "fail"` và `awaiting_user`, bất kể agent báo gì. Chế độ `cmd` chỉ chạy ở mức giao `deploy` (kiểm bản đang chạy thật). Không có `verify` hoặc agent không khai chuỗi → `skipped`.
 
+## Cấu hình từ hub (chỉ thắt chặt)
+
+Quản trị dự án đặt ở hub (Cài đặt → Chế độ → «Cấu hình AI làm việc»): ngân sách và thời gian tối đa mỗi lượt, ranh giới bổ sung, hướng dẫn riêng. Worker lấy **min(hub, trần cục bộ)** cho ngân sách/thời gian và **cộng thêm** ranh giới/hướng dẫn vào prompt. Hub không nới được gì: đường dẫn được sửa, lệnh dựng/triển khai, khoá, `maxDeliver` luôn là cấu hình cục bộ — hub bị chiếm quyền hay admin đặt nhầm cũng không mở rộng quyền của agent trên máy. Hàng đợi xếp theo mức ưu tiên (Khẩn trước).
+
 ## Cấu hình
 
 Xem `worker.config.example.json`. Đường dẫn tương đối tính từ thư mục chứa tệp cấu hình; `~` được mở rộng.

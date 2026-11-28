@@ -46,6 +46,12 @@ const patch = z
       textSelection: z.boolean(),
       requireApproval: z.boolean(),
       autoApproveRoles: z.array(z.string().trim().min(1).max(50)).max(20),
+      worker: z.object({
+        budgetUsd: z.number().min(0.1).max(100).nullable(),
+        timeoutSec: z.number().int().min(60).max(14400).nullable(),
+        instructions: z.string().max(4000),
+        boundaries: z.array(z.string().trim().min(1).max(500)).max(20),
+      }),
       // Bộ chọn CSS (widget dùng trong try/catch, không chèn vào HTML). Chặn ký tự điều khiển và ngoặc nhọn cho chắc.
       selectionScope: z.string().max(200).regex(/^[^<>\p{Cc}]*$/u, "Bộ chọn CSS không hợp lệ"),
       selectionRoles: z.array(z.string().trim().min(1).max(50)).max(20),

@@ -346,9 +346,9 @@ async function deployAndCheck(id) {
 }
 
 // ── Prompt cho agent ────────────────────────────────────────────────────────────────────────
-function buildPrompt(item, project, base) {
+function buildPrompt(item, project, base, extra = {}) {
   const tpl = fs.readFileSync(cfg.promptFile || path.join(HERE, "prompt.vi.md"), "utf8");
-  const boundaries = [].concat(cfg.boundaries || []).join("\n\n").trim();
+  const boundaries = [].concat(cfg.boundaries || [], extra.boundaries || []).join("\n\n").trim();
   const vars = {
     projectName: project.name || cfg.project,
     projectSlug: cfg.project,
@@ -358,6 +358,7 @@ function buildPrompt(item, project, base) {
     baseBranch: base,
     buildCmd: cfg.build ? `chạy \`${cfg.build}\`` : "tự chạy bước dựng/kiểm thử phù hợp của dự án (cấu hình chưa có lệnh dựng riêng)",
     allowedPaths: cfg.allowedPaths?.length ? cfg.allowedPaths.map((p) => `\`${p}\``).join(", ") : "mọi tệp trong kho mã, trừ tệp bí mật",
+    guidance: (extra.guidance || "").trim() || "(Dự án chưa có hướng dẫn riêng.)",
     boundaries: boundaries || "(Ứng dụng này không nêu thêm ranh giới riêng ngoài các điều chung ở trên.)",
   };
   return tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => {
@@ -493,6 +494,14 @@ async function runOnce() {
   // `claude -p` chọn điểm truy xuất MỘT LẦN cho cả tiến trình; mỗi lượt chỉ làm một góp ý nên không còn lẫn nhà cung cấp như bản DGXL.
   const provider = item.aiProvider || "claude";
   let env = {}, agent = cfg.agent;
+  // Cấu hình AI-dev từ hub: CHỈ THẮT CHẶT. Ngân sách/thời gian lấy min(hub, trần cục bộ); ranh giới và hướng dẫn chỉ cộng thêm vào prompt.
+  const hw = q.data.project?.worker || {};
+  const hubW = {
+    boundaries: Array.isArray(hw.boundaries) ? hw.boundaries.filter((x) => typeof x === "string" && x.trim()).slice(0, 20) : [],
+    instructions: typeof hw.instructions === "string" ? hw.instructions.slice(0, 4000) : "",
+  };
+  const tighten = (local, hub) => (typeof hub === "number" && Number.isFinite(hub) && hub > 0 ? Math.min(local, hub) : local);
+  agent = { ...agent, budgetUsd: tighten(agent.budgetUsd, hw.budgetUsd), timeoutSec: tighten(agent.timeoutSec, hw.timeoutSec) };
   if (cfg.agent.envFile && fs.existsSync(cfg.agent.envFile)) env = { ...env, ...loadEnvFile(cfg.agent.envFile) };
   if (provider !== "claude") {
     const p = cfg.providers[provider];
@@ -524,7 +533,7 @@ async function runOnce() {
   log(`Mốc lùi ${prev}, nhánh gốc ${base}.`);
 
   await say(id, "Trợ lý đã nhận việc này và đang đọc kỹ yêu cầu của bạn.", "progress");
-  const prompt = buildPrompt(item, { name: q.data.project?.name || cfg.project }, base);
+  const prompt = buildPrompt(item, { name: q.data.project?.name || cfg.project }, base, { boundaries: hubW.boundaries, guidance: hubW.instructions });
 
   const run = await runAgent({ item, agent, env, prompt, model, base });
   log(`Agent kết thúc (mã ${run.code}${run.timedOut ? ", QUÁ HẠN" : ""}${run.stopped ? ", BỊ DỪNG" : ""}); chi phí ${run.cost} USD.`);

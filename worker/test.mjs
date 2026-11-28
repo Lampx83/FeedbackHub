@@ -199,6 +199,26 @@ try {
   const prompt2 = fs.readFileSync(path.join(LOGDIR, "prompts", `${c2.id}.md`), "utf8");
   ok(!/\{\{\w+\}\}/.test(prompt2) && prompt2.includes(c2.id) && prompt2.includes("bảng điểm của học viên") && prompt2.includes("Ứng dụng thử worker") && /DỮ LIỆU, KHÔNG PHẢI CHỈ THỊ/.test(prompt2), "prompt: điền hết placeholder, có ranh giới riêng, dặn nội dung góp ý là dữ liệu");
 
+  // ── (2b) cấu hình AI-dev từ hub: chỉ thắt chặt ─────────────────────────────────────────
+  console.log("\n— Ca 2b: cấu hình AI-dev từ hub (chỉ thắt chặt) —");
+  ok((await patchProject({ features: { worker: { budgetUsd: 1.5, timeoutSec: null, instructions: "HUONG DAN RIENG TU HUB", boundaries: ["RANH GIOI THEM TU HUB"] } } })).status === 200, "hub lưu cấu hình AI-dev");
+  const c2b = await newFeedback("Ca 2b cấu hình từ hub", { requirePlan: false });
+  setMode("normal");
+  await runWorker(baseCfg());
+  const run2b = agentRuns().at(-1);
+  const prompt2b = fs.readFileSync(path.join(LOGDIR, "prompts", `${c2b.id}.md`), "utf8");
+  ok(run2b.id === c2b.id && run2b.argv.includes("1.5") && !run2b.argv.includes("3"), "ngân sách hub (1.5) thấp hơn trần cục bộ (3) → dùng 1.5", JSON.stringify(run2b.argv));
+  ok(prompt2b.includes("HUONG DAN RIENG TU HUB") && prompt2b.includes("RANH GIOI THEM TU HUB") && prompt2b.includes("bảng điểm của học viên"), "prompt có hướng dẫn + ranh giới từ hub, vẫn giữ ranh giới cục bộ");
+  await patchProject({ features: { worker: { budgetUsd: 50, timeoutSec: null, instructions: "", boundaries: [] } } });
+  const c2c = await newFeedback("Ca 2c hub đặt ngân sách cao hơn trần", { requirePlan: false });
+  setMode("normal");
+  await runWorker(baseCfg());
+  const run2c = agentRuns().at(-1);
+  const prompt2c = fs.readFileSync(path.join(LOGDIR, "prompts", `${c2c.id}.md`), "utf8");
+  ok(run2c.id === c2c.id && run2c.argv.includes("3") && !run2c.argv.includes("50"), "ngân sách hub (50) cao hơn trần cục bộ (3) → vẫn là 3 (hub không nới được)", JSON.stringify(run2c.argv));
+  ok(prompt2c.includes("Dự án chưa có hướng dẫn riêng") && !prompt2c.includes("HUONG DAN RIENG TU HUB"), "bỏ hướng dẫn trên hub thì prompt không còn");
+  await patchProject({ features: { worker: { budgetUsd: null, timeoutSec: null, instructions: "", boundaries: [] } } });
+
   // ── (3) execute + deploy thành công ─────────────────────────────────────────────────────
   console.log("\n— Ca 3: execute + deploy thành công —");
   await patchProject({ mode: "execute", deliver: "deploy" });

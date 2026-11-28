@@ -37,7 +37,30 @@ export type Features = {
    * được duyệt ngay lúc gửi, ghi nhận là "tự động" trong nhật ký. Do quản trị dự án đặt; máy không đặt được. Rỗng = tắt.
    */
   autoApproveRoles: string[];
+  /** Cấu hình AI-dev (xem WorkerSettings). KHÔNG đưa ra cấu hình công khai. */
+  worker: WorkerSettings;
 };
+
+/**
+ * Cấu hình AI-dev do quản trị dự án đặt trên hub. CHỈ THẮT CHẶT / BỔ SUNG, không nới: worker lấy min(hub, trần cục bộ) cho
+ * ngân sách và thời gian, cộng dồn ranh giới. Đường dẫn được sửa, lệnh dựng/triển khai, khoá và mức giao tối đa luôn ở máy chạy worker.
+ */
+export type WorkerSettings = {
+  /** Ngân sách tối đa mỗi lượt (USD). null = theo trần cục bộ. */
+  budgetUsd: number | null;
+  /** Thời gian tối đa mỗi lượt (giây). null = theo trần cục bộ. */
+  timeoutSec: number | null;
+  /** Hướng dẫn riêng cho AI của dự án này (văn bản thuần, đi vào prompt; không thay được quy tắc an toàn). */
+  instructions: string;
+  /** Ranh giới bổ sung (mỗi dòng một điều), cộng thêm vào ranh giới cục bộ. */
+  boundaries: string[];
+};
+
+export const DEFAULT_WORKER: WorkerSettings = { budgetUsd: null, timeoutSec: null, instructions: "", boundaries: [] };
+
+export function workerSettings(p: Pick<Project, "features">): WorkerSettings {
+  return { ...DEFAULT_WORKER, ...((projectFeatures(p) as { worker?: Partial<WorkerSettings> }).worker ?? {}) };
+}
 
 export const DEFAULT_FEATURES: Features = {
   scopePicker: true,
@@ -54,6 +77,7 @@ export const DEFAULT_FEATURES: Features = {
   hidePaths: [],
   requireApproval: false,
   autoApproveRoles: [],
+  worker: DEFAULT_WORKER,
 };
 
 export function projectTypes(p: Pick<Project, "types">): TypeDef[] {
@@ -74,7 +98,8 @@ export function publicConfig(p: Project) {
     mode: p.mode,
     anonymousSubmit: p.anonymousSubmit,
     types: projectTypes(p),
-    features: projectFeatures(p),
+    // Cấu hình AI-dev là nội bộ (hướng dẫn, ranh giới) — widget không cần, không để lộ.
+    features: (({ worker: _w, ...f }) => f)(projectFeatures(p)),
     theme: theme.ok ? theme.value : {},
   };
 }

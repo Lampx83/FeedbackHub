@@ -112,10 +112,11 @@ Header: `Authorization: Bearer $KEY` (khoá `fhk_w_…`, `fhk_r_…` hoặc `fhk
 Danh sách dự án kèm `counts` (số góp ý theo trạng thái). Operator thấy tất cả; worker chỉ thấy dự án của mình.
 
 ### `GET /machine/queue`
-Hàng đợi của worker: góp ý `pending`/`reviewing` **không phải** `question`, cũ trước, tối đa 50, kèm tệp đính kèm.
+Hàng đợi của worker: góp ý `pending`/`reviewing` **không phải** `question`, xếp theo `priority` (`urgent` → `high` → `normal`/chưa đặt → `low`), cùng mức thì cũ trước, tối đa 50, kèm tệp đính kèm. `project.worker` = cấu hình AI-dev do quản trị dự án đặt (`features.worker`: `budgetUsd`, `timeoutSec`, `instructions`, `boundaries`); worker chỉ dùng để **thắt chặt** (min với trần cục bộ, cộng thêm ranh giới/hướng dẫn vào prompt), không nới được quyền. Không có trong cấu hình công khai của widget.
 
 ```json
-{ "project": { "slug": "my-app", "name": "…", "mode": "execute", "deliver": "branch", "models": ["claude-sonnet-5"] },
+{ "project": { "slug": "my-app", "name": "…", "mode": "execute", "deliver": "branch", "models": ["claude-sonnet-5"],
+               "worker": { "budgetUsd": null, "timeoutSec": null, "instructions": "", "boundaries": [] } },
   "items": [ { "id": "…", "title": "…", "body": "…", "status": "pending", "kind": "function", "attachments": [ … ] } ],
   "stopRequested": ["id-cần-cắt"] }
 ```
