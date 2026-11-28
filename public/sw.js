@@ -6,10 +6,15 @@ self.addEventListener("push", (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch { d = {}; }
   const title = typeof d.title === "string" ? d.title.slice(0, 120) : "Thông báo";
+  // Biểu tượng đặt cạnh sw.js (cùng đường dẫn gốc của hub, kể cả khi hub chạy dưới một tiền tố như /feedbackhub).
+  const asset = (p) => new URL(p, self.registration.scope).href;
   event.waitUntil(
     self.registration.showNotification(title, {
-      body: typeof d.body === "string" ? d.body.slice(0, 300) : "",
+      body: typeof d.body === "string" ? d.body.slice(0, 600) : "",
       tag: typeof d.tag === "string" ? d.tag.slice(0, 100) : undefined,
+      icon: asset("icons/icon-192.png"),
+      badge: asset("icons/badge-96.png"),
+      timestamp: Date.now(),
       data: { url: typeof d.url === "string" ? d.url : "" },
     }),
   );

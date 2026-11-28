@@ -196,7 +196,7 @@ export async function addMessage(
   // Chạm updatedAt để widget đang mở biết có nội dung mới mà tải lại luồng.
   const updated = await prisma.feedback.update({ where: { id: fb.id }, data: { updatedAt: new Date() } });
   if (m.role !== "user" && (m.kind ?? "chat") === "chat") dispatchWebhook(project, "feedback.reply", updated, m);
-  if (m.role === "user" && (m.kind ?? "chat") === "chat") notifyExternal(project, updated, "reply");
+  if (m.role === "user" && (m.kind ?? "chat") === "chat") notifyExternal(project, updated, "reply", m.body);
   return msg;
 }
 

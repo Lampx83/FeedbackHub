@@ -29,7 +29,13 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…`
 const link = (slug: string, id: string) => withBase(`/board?project=${encodeURIComponent(slug)}&id=${encodeURIComponent(id)}`);
 
 /** Đẩy tới mọi thiết bị đã đăng ký của quản trị viên CÒN quyền với dự án (kiểm lúc gửi, không lúc đăng ký). Nền, lỗi bị nuốt. */
-export async function pushToAdmins(project: Pick<Project, "id" | "slug" | "name">, fb: Pick<Feedback, "id" | "title" | "kind" | "reporterName"> & Partial<Pick<Feedback, "guardrailKind">>, event: "new" | "reply" | "guardrail") {
+export async function pushToAdmins(
+  project: Pick<Project, "id" | "slug" | "name">,
+  fb: Pick<Feedback, "id" | "title" | "kind" | "reporterName"> & Partial<Pick<Feedback, "body" | "pagePath" | "guardrailKind" | "guardrailDetail">>,
+  event: "new" | "reply" | "guardrail",
+  /** Nội dung tin vừa gửi (khi người gửi trả lời); các sự kiện khác lấy từ chính góp ý. */
+  snippet?: string,
+) {
   if (!pushConfigured()) return;
   const subs = await prisma.pushSubscription.findMany({
     where: { admin: { disabled: false, OR: [{ superAdmin: true }, { memberships: { some: { projectId: project.id } } }] } },
@@ -38,10 +44,16 @@ export async function pushToAdmins(project: Pick<Project, "id" | "slug" | "name"
   });
   if (!subs.length) return;
   const what = event === "guardrail" ? "Hàng rào chặn lượt AI" : event === "reply" ? "Trả lời mới" : fb.kind === "bug" ? "Báo lỗi mới" : "Góp ý mới";
+  const icon = event === "guardrail" ? "🚧" : event === "reply" ? "💬" : fb.kind === "bug" ? "🐞" : "💡";
   const label = event === "guardrail" ? (GUARDRAIL_LABEL[fb.guardrailKind as GuardrailKind] ?? "hàng rào an toàn") : (KIND_LABEL[fb.kind as keyof typeof KIND_LABEL] ?? fb.kind);
+  // Đủ ý để đọc ngay trên màn hình khoá: tiêu đề, đoạn đầu nội dung, rồi loại · người gửi · trang. Tất cả là chữ thuần đã cắt ngắn.
+  const flat = (s?: string | null) => (s ?? "").replace(/\s+/g, " ").trim();
+  const title = flat(fb.title);
+  const excerpt = flat(event === "reply" ? snippet : event === "guardrail" ? fb.guardrailDetail : fb.body);
+  const meta = [label, clip(flat(fb.reporterName), 40), fb.pagePath && event === "new" ? clip(flat(fb.pagePath), 60) : ""].filter(Boolean).join(" · ");
   const payload = JSON.stringify({
-    title: `${what} · ${clip(project.name, 40)}`,
-    body: `${clip(fb.title, 120)}\n${label} · ${clip(fb.reporterName, 40)}`,
+    title: `${icon} ${what} · ${clip(project.name, 40)}`,
+    body: [clip(title, 120), excerpt && excerpt !== title ? clip(excerpt, 220) : "", meta].filter(Boolean).join("\n"),
     url: link(project.slug, fb.id),
     tag: `${event}-${fb.id}`,
   });

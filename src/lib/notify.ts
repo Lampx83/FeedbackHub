@@ -42,11 +42,11 @@ function describe(project: Pick<Project, "slug" | "name">, fb: Pick<Feedback, "i
 }
 
 /** Gửi ra ngoài (email + webhook) khi có góp ý mới / người gửi trả lời. Nền, không bao giờ làm hỏng thao tác chính. */
-export function notifyExternal(project: Project, fb: Feedback, event: NotifyEvent) {
+export function notifyExternal(project: Project, fb: Feedback, event: NotifyEvent, snippet?: string) {
   const cfg = projectNotify(project);
   if (cfg.on === "off") return;
   if (cfg.on === "bugs" && fb.kind !== "bug" && event !== "guardrail") return;
-  void pushToAdmins(project, fb, event).catch(() => {});
+  void pushToAdmins(project, fb, event, snippet).catch(() => {});
   if (!cfg.emails.length && !cfg.webhookUrl) return;
   void sendAll(project, fb, event, cfg).catch(() => {});
 }
