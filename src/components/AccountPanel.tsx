@@ -53,7 +53,7 @@ export function AccountPanel({ name, email, superAdmin, projects }: { name: stri
               <ul className="divide-y divide-line rounded-lg border border-line">
                 {projects.map((p) => (
                   <li key={p.slug} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <Link href={p.role === "Chỉ xem" ? `/board?project=${encodeURIComponent(p.slug)}` : `/projects/${p.slug}`} className="font-medium hover:underline">
+                    <Link href={(p.role === "Chỉ xem" || p.role === "Điều phối yêu cầu (BA)") ? `/board?project=${encodeURIComponent(p.slug)}` : `/projects/${p.slug}`} className="font-medium hover:underline">
                       {p.name}
                     </Link>
                     <Badge className="bg-surface-2 text-muted ring-1 ring-inset ring-line">{p.role}</Badge>

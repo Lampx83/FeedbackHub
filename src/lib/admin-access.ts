@@ -7,18 +7,20 @@ import { prisma } from "./prisma";
  * Phân quyền bảng điều khiển theo dự án.
  *  - superAdmin: mọi thứ (mọi dự án, tài khoản, khoá operator, tạo/xoá dự án).
  *  - manager: xem + xử lý góp ý + cài đặt + khoá của DỰ ÁN ĐƯỢC GÁN (không xoá dự án).
+ *  - analyst (BA/điều phối yêu cầu): như viewer, thêm TẠO yêu cầu và TRẢ LỜI. Không duyệt, không đổi trạng thái, không cài đặt/khoá.
  *  - viewer: chỉ xem góp ý (và tệp đính kèm) của dự án được gán.
  * Người không được gán nhận 404 như dự án không tồn tại (không lộ sự có mặt của dự án).
  * Luôn kiểm ở API, không chỉ ở giao diện (quy tắc bất biến số 3).
  */
-export type Role = "manager" | "viewer";
-export type Level = "view" | "manage";
+export type Role = "manager" | "analyst" | "viewer";
+export type Level = "view" | "write" | "manage";
 type Admin = { id: string; superAdmin: boolean };
 
-export const ROLE_LABEL: Record<Role, string> = { manager: "Quản trị dự án", viewer: "Chỉ xem" };
+export const ROLE_LABEL: Record<Role, string> = { manager: "Quản trị dự án", analyst: "Điều phối yêu cầu (BA)", viewer: "Chỉ xem" };
 
 export function allows(role: Role | "super", level: Level): boolean {
-  return role === "super" || role === "manager" || level === "view";
+  if (role === "super" || role === "manager") return true;
+  return level === "view" || (role === "analyst" && level === "write");
 }
 
 /** Dự án mà tài khoản được thấy + vai trò. `all` = quản trị toàn hub. */
@@ -55,7 +57,7 @@ export async function requireProjectApi(slug: string, level: Level) {
   const p = await prisma.project.findUnique({ where: { slug }, select: { id: true } });
   const role = p ? await roleOn(a.admin, p.id) : null;
   if (!p || !role) return { ok: false, response: fail(404, "Không có dự án này") } as Denied;
-  if (!allows(role, level)) return { ok: false, response: fail(403, "Bạn chỉ có quyền xem dự án này") } as Denied;
+  if (!allows(role, level)) return { ok: false, response: fail(403, "Vai trò của bạn ở dự án này chưa được làm việc này") } as Denied;
   return { ok: true, admin: a.admin, projectId: p.id, role } as const;
 }
 
@@ -68,6 +70,6 @@ export async function requireProjectIdApi(projectId: string | null, level: Level
   }
   const role = await roleOn(a.admin, projectId);
   if (!role) return { ok: false, response: fail(404, notFound) } as Denied;
-  if (!allows(role, level)) return { ok: false, response: fail(403, "Bạn chỉ có quyền xem dự án này") } as Denied;
+  if (!allows(role, level)) return { ok: false, response: fail(403, "Vai trò của bạn ở dự án này chưa được làm việc này") } as Denied;
   return { ok: true, admin: a.admin, role } as const;
 }

@@ -27,7 +27,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
   const role = p ? await roleOn(admin, p.id) : null;
   if (!p || !role) notFound();
   // Người chỉ xem không có trang cài đặt: đưa tới bảng góp ý của dự án.
-  if (role === "viewer") redirect(`/board?project=${encodeURIComponent(slug)}`);
+  if (role === "viewer" || role === "analyst") redirect(`/board?project=${encodeURIComponent(slug)}`);
   const theme = parseTheme(p.theme);
   const themeValue = theme.ok ? theme.value : {};
   return (

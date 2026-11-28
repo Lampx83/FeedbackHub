@@ -25,7 +25,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   const { signingSecretEnc, ...rest } = p;
   void signingSecretEnc;
   // Người chỉ xem không cần (và không được) thấy danh sách khoá của dự án.
-  if (a.role === "viewer") rest.keys = [];
+  if (a.role === "viewer" || a.role === "analyst") rest.keys = [];
   return json({ myRole: a.role, notify: projectNotify(p), mailConfigured: mailConfigured(), project: rest, warnings: contrastWarnings(parseTheme(p.theme).ok ? (p.theme as never) : {}) });
 }
 

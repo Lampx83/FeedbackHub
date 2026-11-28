@@ -38,7 +38,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (losesSuper && (await otherActiveSupers(id)) === 0) return fail(400, "Hub phải còn ít nhất một quản trị toàn hub đang hoạt động");
 
   const willBeSuper = v.superAdmin ?? target.superAdmin;
-  let rows: { projectId: string; role: "manager" | "viewer" }[] | null = null;
+  let rows: { projectId: string; role: "manager" | "analyst" | "viewer" }[] | null = null;
   if (v.memberships !== undefined) {
     const m = await resolveMemberships(willBeSuper ? [] : v.memberships);
     if (!m.ok) return fail(400, m.error);

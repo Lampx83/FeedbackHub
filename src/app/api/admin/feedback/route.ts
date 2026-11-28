@@ -99,7 +99,7 @@ export async function POST(req: Request) {
   const project = await prisma.project.findUnique({ where: { slug: v.project } });
   const role = project ? await roleOn(a.admin, project.id) : null;
   if (!project || !role) return fail(404, "Không có dự án này");
-  if (!allows(role, "manage")) return fail(403, "Bạn chỉ có quyền xem dự án này");
+  if (!allows(role, "write")) return fail(403, "Vai trò của bạn ở dự án này chưa được tạo yêu cầu");
   const text = [v.context?.trim() ? `Bối cảnh:\n${v.context.trim()}` : null, `Hành vi mong muốn:\n${v.desired}`].filter(Boolean).join("\n\n");
   const fb = await createFeedback(
     project,

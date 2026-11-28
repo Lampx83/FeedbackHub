@@ -421,6 +421,27 @@ try {
   ok((await call("POST", "/api/admin/feedback", { cookie: O.cookie, body: reqBody })).status === 404, "quản trị dự án khác không tạo được yêu cầu (404)");
   ok((await call("POST", "/api/admin/feedback", { body: reqBody })).status === 401, "tạo yêu cầu cần đăng nhập (401)");
   ok((await call("POST", "/api/admin/feedback", { key: W2, body: reqBody })).status === 401, "khoá máy không tạo được yêu cầu của BA (401)");
+  // Vai trò BA (analyst): xem + tạo yêu cầu + trả lời; KHÔNG duyệt, đổi trạng thái, cài đặt, khoá.
+  const baEmail = `smoke-ba-${tag}@example.com`;
+  ok((await mk(baEmail, "BA thử", [{ slug, role: "analyst" }])).status === 201, "tạo tài khoản vai trò BA (analyst)");
+  const BA = await loginAs(baEmail, PW);
+  const baId = baReq.data.feedback?.id;
+  const baMine = await call("POST", "/api/admin/feedback", { cookie: BA.cookie, body: { ...reqBody, title: `BA tự tạo ${tag}` } });
+  ok(baMine.status === 200, "BA tạo được yêu cầu", JSON.stringify(baMine.data));
+  const baDetail = await call("GET", `/api/admin/feedback/${baId}`, { cookie: BA.cookie });
+  ok(baDetail.data.canWrite === true && baDetail.data.canManage === false, "BA: ghi được nhưng không có quyền quản trị (canWrite/canManage)");
+  ok((await call("PATCH", `/api/admin/feedback/${baId}`, { cookie: BA.cookie, body: { message: "BA trả lời thử" } })).status === 200, "BA trả lời được");
+  ok((await call("PATCH", `/api/admin/feedback/${baId}`, { cookie: BA.cookie, body: { approved: true } })).status === 403, "BA không duyệt được (403)");
+  ok((await call("PATCH", `/api/admin/feedback/${baId}`, { cookie: BA.cookie, body: { status: "done" } })).status === 403, "BA không đổi trạng thái được (403)");
+  ok((await call("PATCH", `/api/admin/feedback/${baId}`, { cookie: BA.cookie, body: { message: "kèm duyệt lén", approved: true } })).status === 403, "BA gói lời nhắn kèm duyệt vẫn bị từ chối (403)");
+  ok(!(await call("GET", `/api/admin/feedback/${baId}`, { cookie })).data.feedback.approvedAt, "sau các lần BA thử, yêu cầu vẫn chưa được duyệt");
+  ok((await call("POST", "/api/admin/feedback/bulk", { cookie: BA.cookie, body: { ids: [baId], approved: true } })).data.skipped?.[0]?.reason === "không đủ quyền", "BA không duyệt hàng loạt được");
+  const baProj = await call("GET", `/api/admin/projects/${slug}`, { cookie: BA.cookie });
+  ok(baProj.status === 200 && baProj.data.myRole === "analyst" && baProj.data.project.keys.length === 0, "BA thấy dự án nhưng không thấy khoá", JSON.stringify(baProj.data).slice(0, 120));
+  ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: BA.cookie, body: { name: "BA đổi tên" } })).status === 403, "BA không sửa được cài đặt dự án (403)");
+  ok((await call("POST", `/api/admin/projects/${slug}/rotate-secret`, { cookie: BA.cookie })).status === 403, "BA không đổi khoá ký (403)");
+  ok((await call("POST", "/api/admin/feedback", { cookie: BA.cookie, body: { ...reqBody, project: slugB } })).status === 404, "BA không tạo được yêu cầu ở dự án không được gán (404)");
+  ok((await call("GET", "/api/admin/users", { cookie: BA.cookie })).status !== 200, "BA không xem được danh sách tài khoản");
   const mkFb = async (title) => (await call("POST", "/api/v1/feedback", { token: admin, body: { title } })).data.feedback?.id;
   const [b1, b2] = [await mkFb(`Hàng loạt 1 ${tag}`), await mkFb(`Hàng loạt 2 ${tag}`)];
   const bulk = await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [b1, b2, "khong-co-id"], approved: true } });

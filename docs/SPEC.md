@@ -174,6 +174,7 @@ Bật `anonymousSubmit` trên dự án. Không token; gọi kèm header `X-Hub-P
 Tách khỏi `adminRoles` (vai trò của người dùng cuối trong ứng dụng chủ). Tài khoản đăng nhập hub có thể là:
 - **Quản trị toàn hub** (`AdminUser.superAdmin`): mọi dự án, tài khoản, khoá operator, tạo/xoá dự án. Tài khoản có sẵn trước khi có tính năng này giữ nguyên quyền này.
 - **Tài khoản thường** gán vào từng dự án qua `ProjectMember` với vai trò `manager` (xem + xử lý + cài đặt + khoá dự án đó, không xoá) hoặc `viewer` (chỉ đọc góp ý).
+- **Điều phối yêu cầu (BA)** là vai trò `analyst` trên từng dự án, nằm giữa `viewer` và `manager`: tạo yêu cầu chỉnh sửa và trả lời, nhưng duyệt, đổi trạng thái và cài đặt vẫn thuộc `manager` — người viết yêu cầu không tự duyệt yêu cầu của mình qua đường này.
 
 Mọi route `/api/admin/**` kiểm quyền theo dự án (xem [API.md §3](API.md)); dự án không được gán trả 404. Khoá tài khoản (`disabled`) và đổi/đặt lại mật khẩu (`sessionsValidAfter`) huỷ phiên đang mở ngay. Hub luôn giữ ≥ 1 quản trị toàn hub hoạt động.
 

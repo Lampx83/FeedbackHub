@@ -106,7 +106,7 @@ export function FeedbackDrawer({ id, onClose, onChanged, onPrev, onNext }: { id:
   const titleId = useId();
   useOverlay(true, onClose, panel);
 
-  const { data, error, reload: load } = useLoader<{ feedback: Detail; canManage?: boolean }>(`/api/admin/feedback/${id}`, 15000);
+  const { data, error, reload: load } = useLoader<{ feedback: Detail; canManage?: boolean; canWrite?: boolean }>(`/api/admin/feedback/${id}`, 15000);
   const fb = data?.feedback ?? null;
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
@@ -360,12 +360,17 @@ export function FeedbackDrawer({ id, onClose, onChanged, onPrev, onNext }: { id:
           ) : null}
         </div>
 
-        {fb && data?.canManage === false ? (
+        {fb && data?.canWrite === false ? (
           <div className="border-t border-line bg-surface px-5 py-3 text-[13px] text-muted">Bạn chỉ có quyền xem dự án này — không trả lời hay đổi trạng thái được.</div>
         ) : fb ? (
           <div className="space-y-2.5 border-t border-line bg-surface px-5 py-3">
             {actionError ? <Alert tone="error">{actionError}</Alert> : null}
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Trả lời người gửi (hiện trong luồng trao đổi và gửi webhook cho ứng dụng)…" rows={2} aria-label="Trả lời người gửi" className="min-h-16 resize-y" />
+            {data?.canManage === false ? (
+              <p className="rounded-lg border border-line bg-surface-2/50 px-3 py-2 text-[13px] text-muted">
+                {fb.approvedAt ? "Yêu cầu đã được duyệt." : "Yêu cầu chưa được duyệt."} Vai trò của bạn trả lời được; duyệt và đổi trạng thái do quản trị dự án làm.
+              </p>
+            ) : (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2/50 px-3 py-2">
               <span className="min-w-0 flex-1 basis-56 text-[13px] leading-snug text-muted">
                 {fb.approvedAt ? <>Đã duyệt{fb.approvedBy ? ` bởi ${fb.approvedBy}` : ""} ({formatDateTime(fb.approvedAt)}): AI của dự án được phép đọc và xử lý góp ý này.</> : "Chưa duyệt. Nếu dự án bật “cần duyệt”, AI chưa thấy góp ý này — hãy đọc kỹ rồi duyệt."}
@@ -374,18 +379,23 @@ export function FeedbackDrawer({ id, onClose, onChanged, onPrev, onNext }: { id:
                 {fb.approvedAt ? "Bỏ duyệt" : "Duyệt để AI xử lý"}
               </Button>
             </div>
+            )}
             <div className="flex flex-wrap items-center gap-1.5">
               <Button size="sm" onClick={() => void send(null, reply)} disabled={busy || !reply.trim()}>
                 {busy ? <Spinner /> : null}
                 Gửi trả lời
               </Button>
-              <span className="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden />
-              <span className="text-[13px] text-muted">Đổi trạng thái:</span>
-              {HUMAN_SETTABLE.map((s) => (
-                <Button key={s} size="sm" variant={fb.status === s ? "primary" : "secondary"} disabled={busy || fb.status === s} onClick={() => pickStatus(s)}>
-                  {STATUS_LABEL[s]}
-                </Button>
-              ))}
+              {data?.canManage === false ? null : (
+                <>
+                  <span className="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden />
+                  <span className="text-[13px] text-muted">Đổi trạng thái:</span>
+                  {HUMAN_SETTABLE.map((s) => (
+                    <Button key={s} size="sm" variant={fb.status === s ? "primary" : "secondary"} disabled={busy || fb.status === s} onClick={() => pickStatus(s)}>
+                      {STATUS_LABEL[s]}
+                    </Button>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         ) : null}

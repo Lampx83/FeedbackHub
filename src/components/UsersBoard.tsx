@@ -7,12 +7,12 @@ import { useLoader } from "./useLoader";
 import { AddButton, ConfirmDialog, Modal } from "./ui/Modal";
 import { Alert, Badge, Button, Card, CopyButton, EmptyState, Field, Input, PageHeader, SearchInput, Select, Spinner, Switch, Toolbar } from "./ui/primitives";
 
-type Role = "manager" | "viewer";
+type Role = "manager" | "analyst" | "viewer";
 type Member = { role: Role; project: { slug: string; name: string } };
 type User = { id: string; email: string; name: string; superAdmin: boolean; disabled: boolean; createdAt: string; memberships: Member[] };
 type Data = { users: User[]; projects: { slug: string; name: string }[]; selfId: string };
 
-const ROLE_TEXT: Record<Role, string> = { manager: "Quản trị dự án", viewer: "Chỉ xem" };
+const ROLE_TEXT: Record<Role, string> = { manager: "Quản trị dự án", analyst: "Điều phối yêu cầu (BA)", viewer: "Chỉ xem" };
 
 /** Mật khẩu ngẫu nhiên 16 ký tự (bỏ ký tự dễ nhầm), sinh ngay trên trình duyệt. */
 function randomPassword() {
@@ -221,7 +221,7 @@ function UserDialog({ user, projects, isSelf, onClose, onSaved }: { user: User |
         {!superAdmin ? (
           <div>
             <div className="mb-1.5 text-sm font-medium">Dự án được phép</div>
-            <p className="mb-2 text-[13px] text-muted">“Quản trị dự án”: xem, trả lời/đổi trạng thái góp ý, cài đặt, khoá và khoá ký của dự án đó. “Chỉ xem”: chỉ đọc góp ý. Không chọn = không thấy dự án.</p>
+            <p className="mb-2 text-[13px] text-muted">“Quản trị dự án”: xem, trả lời/đổi trạng thái góp ý, cài đặt, khoá và khoá ký của dự án đó. “Điều phối yêu cầu (BA)”: xem, tạo yêu cầu chỉnh sửa và trả lời, nhưng không duyệt, không đổi trạng thái, không cài đặt. “Chỉ xem”: chỉ đọc góp ý. Không chọn = không thấy dự án.</p>
             {projects.length === 0 ? (
               <p className="text-sm text-muted">Chưa có dự án nào.</p>
             ) : (
@@ -235,6 +235,7 @@ function UserDialog({ user, projects, isSelf, onClose, onSaved }: { user: User |
                     <Select aria-label={`Vai trò ở ${p.name}`} value={roles[p.slug] ?? ""} onChange={(e) => setRoles((r) => ({ ...r, [p.slug]: e.target.value as Role | "" }))} className="w-auto">
                       <option value="">Không gán</option>
                       <option value="manager">{ROLE_TEXT.manager}</option>
+                      <option value="analyst">{ROLE_TEXT.analyst}</option>
                       <option value="viewer">{ROLE_TEXT.viewer}</option>
                     </Select>
                   </li>

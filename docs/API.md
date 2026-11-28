@@ -186,6 +186,7 @@ Cookie `hub_session` (đăng nhập `POST /api/admin/login { email, password }`,
 |---|---|
 | Quản trị toàn hub (`superAdmin`) | Mọi dự án; tạo/xoá dự án; khoá operator; quản lý tài khoản |
 | `manager` (Quản trị dự án) | Chỉ dự án được gán: xem + trả lời/đổi trạng thái góp ý, cài đặt, khoá worker/reader, khoá ký. **Không** xoá dự án |
+| `analyst` (Điều phối yêu cầu / BA) | Chỉ dự án được gán: như `viewer`, thêm **tạo yêu cầu** (`POST /api/admin/feedback`) và **trả lời** (`PATCH` chỉ có `message`). **Không** duyệt/bỏ duyệt, đổi trạng thái (`PATCH` có `status`/`approved` → 403), duyệt hàng loạt, cài đặt, khoá; không thấy khoá |
 | `viewer` (Chỉ xem) | Chỉ dự án được gán: đọc góp ý và tệp đính kèm (ghi → 403; không thấy khoá) |
 
 Dự án không được gán trả **404** (như không tồn tại). Danh sách `projects`/`feedback` chỉ gồm dự án được phép; `GET /projects` kèm `myRole`, `GET /feedback/{id}` kèm `canManage`.

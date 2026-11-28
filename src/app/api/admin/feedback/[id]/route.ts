@@ -21,7 +21,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   if (!fb) return fail(404, "Không tìm thấy góp ý");
   const a = await requireProjectIdApi(fb.projectId, "view", "Không tìm thấy góp ý");
   if (!a.ok) return a.response;
-  return json({ feedback: fb, canManage: allows(a.role, "manage") });
+  return json({ feedback: fb, canManage: allows(a.role, "manage"), canWrite: allows(a.role, "write") });
 }
 
 const schema = z
@@ -34,7 +34,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!body.ok) return body.response;
   const fb = await prisma.feedback.findUnique({ where: { id: (await params).id }, include: { project: true } });
   if (!fb) return fail(404, "Không tìm thấy góp ý");
-  const a = await requireProjectIdApi(fb.projectId, "manage", "Không tìm thấy góp ý");
+  // Trả lời thuần là mức "write" (BA làm được); đổi trạng thái hay duyệt là phán quyết quản trị → "manage".
+  const needManage = body.value.status !== undefined || body.value.approved !== undefined;
+  const a = await requireProjectIdApi(fb.projectId, needManage ? "manage" : "write", "Không tìm thấy góp ý");
   if (!a.ok) return a.response;
   const { project, ...feedback } = fb;
   // Duyệt / bỏ duyệt: quyết định của con người (máy không có đường nào đặt được). Ghi vào nhật ký để truy vết.

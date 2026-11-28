@@ -5,7 +5,7 @@ export const PASSWORD_MIN = 10;
 export const passwordSchema = z.string().min(PASSWORD_MIN, `Mật khẩu tối thiểu ${PASSWORD_MIN} ký tự`).max(200);
 
 export const membershipsSchema = z
-  .array(z.object({ slug: z.string().min(1).max(60), role: z.enum(["manager", "viewer"]) }))
+  .array(z.object({ slug: z.string().min(1).max(60), role: z.enum(["manager", "analyst", "viewer"]) }))
   .max(200)
   .refine((m) => new Set(m.map((x) => x.slug)).size === m.length, { message: "Một dự án chỉ gán một lần cho mỗi người" });
 
@@ -20,7 +20,7 @@ export const userSelect = {
 } as const;
 
 /** Chuyển danh sách {slug, role} thành {projectId, role}; trả lỗi nếu có mã dự án không tồn tại. */
-export async function resolveMemberships(items: { slug: string; role: "manager" | "viewer" }[]) {
+export async function resolveMemberships(items: { slug: string; role: "manager" | "analyst" | "viewer" }[]) {
   const projects = await prisma.project.findMany({ where: { slug: { in: items.map((i) => i.slug) } }, select: { id: true, slug: true } });
   const bySlug = new Map(projects.map((p) => [p.slug, p.id]));
   const missing = items.filter((i) => !bySlug.has(i.slug)).map((i) => i.slug);
