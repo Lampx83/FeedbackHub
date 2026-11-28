@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentAdmin } from "@/lib/admin-session";
-import { hubName } from "@/lib/env";
+import { googleClientId, hubName } from "@/lib/env";
 import { LoginForm } from "./LoginForm";
 
 export const metadata = { title: "Đăng nhập" };
@@ -14,7 +14,7 @@ export default async function LoginPage() {
           <h1 className="text-2xl font-semibold tracking-tight">{hubName()}</h1>
           <p className="mt-1 text-sm text-muted">Đăng nhập để vào bảng điều khiển</p>
         </div>
-        <LoginForm />
+        <LoginForm googleClientId={googleClientId() || undefined} />
       </div>
     </main>
   );

@@ -18,3 +18,5 @@ export const dataDir = () => process.env.HUB_DATA_DIR || "./data";
 export const publicUrl = () => (process.env.HUB_PUBLIC_URL || "").replace(/\/$/, "");
 /** Tên hiển thị của hệ thống (đặt HUB_NAME để mỗi nơi triển khai một tên). Chỉ là nhãn: URL, khoá và biến môi trường giữ nguyên. */
 export const hubName = () => (process.env.HUB_NAME || "").replace(/\s+/g, " ").trim().slice(0, 60) || "Feedback Hub";
+/** Mã khách OAuth (loại "Web") của Google để bật "Đăng nhập bằng Google". Là mã công khai (không phải bí mật); rỗng = tắt. */
+export const googleClientId = () => (process.env.HUB_GOOGLE_CLIENT_ID || "").trim();

@@ -194,7 +194,7 @@ Dự án không được gán trả **404** (như không tồn tại). Danh sác
 
 | Route | Việc |
 |---|---|
-| `POST /api/admin/login` · `POST /api/admin/logout` · `GET /api/admin/me` | Phiên (`me` kèm `superAdmin`) |
+| `POST /api/admin/login` · `POST /api/admin/google` · `POST /api/admin/logout` · `GET /api/admin/me` | Phiên (`me` kèm `superAdmin`). `google { credential }`: ID token từ Google Identity Services, khớp email với tài khoản đã có (không tự tạo); `404` khi chưa đặt `HUB_GOOGLE_CLIENT_ID`, `401` khi token sai/tài khoản chưa có |
 | `POST /api/admin/me/password` `{ current, next }` | Tự đổi mật khẩu (≥ 10 ký tự, phải đúng mật khẩu hiện tại, 5 lần/10 phút). Mọi phiên khác bị đăng xuất, phiên này được cấp lại |
 | `GET/POST /api/admin/me/tokens` · `DELETE /api/admin/me/tokens/{id}` | **Token cá nhân** (`fhk_a_…`) cho CLI/script/Claude Code, thay mật khẩu. `POST { label, days?=90 (1–365) }` trả token **một lần**; `GET` chỉ liệt kê token còn hiệu lực (không lộ giá trị). Dùng: `Authorization: Bearer fhk_a_…` ở mọi route quản trị — **đúng quyền của chủ tài khoản** (viewer vẫn chỉ xem). Cấp/thu hồi/đổi mật khẩu **chỉ qua cookie đăng nhập**, token không làm được. Đổi/đặt lại mật khẩu hoặc khoá tài khoản thu hồi mọi token của người đó |
 | `GET/POST /api/admin/users` | Chỉ quản trị toàn hub. Liệt kê / tạo tài khoản `{ email, name, password, superAdmin?=false, memberships?: [{ slug, role: "manager"\|"viewer" }] }` |

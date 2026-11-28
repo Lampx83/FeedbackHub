@@ -32,6 +32,7 @@ services:
       HUB_ADMIN_EMAIL: ${HUB_ADMIN_EMAIL:-}
       HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
       HUB_NAME: ${HUB_NAME:-}
+      HUB_GOOGLE_CLIENT_ID: ${HUB_GOOGLE_CLIENT_ID:-}
       HUB_PUBLIC_URL: ${HUB_PUBLIC_URL:-}
       # Thông báo qua email (tuỳ chọn) và số proxy tin cậy trước hub (xem docs/DEPLOY.md).
       HUB_SMTP_URL: ${HUB_SMTP_URL:-}

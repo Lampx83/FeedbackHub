@@ -72,6 +72,9 @@ try {
   const cookie = login.res.headers.get("set-cookie")?.split(";")[0];
   const bad = await call("POST", "/api/admin/login", { body: { email: EMAIL, password: "sai-mat-khau" } });
   ok(bad.status === 401, "sai mật khẩu bị từ chối");
+  // Đăng nhập Google: token rác không bao giờ vào được (404 nếu hub chưa bật, 401 nếu đã bật); không đặt cookie phiên.
+  const gbad = await call("POST", "/api/admin/google", { body: { credential: "x".repeat(40) } });
+  ok((gbad.status === 404 || gbad.status === 401) && !gbad.res.headers.get("set-cookie"), "đăng nhập Google: token sai bị từ chối, không cấp phiên", String(gbad.status));
 
   const created = await call("POST", "/api/admin/projects", {
     cookie,
