@@ -4,9 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { withBase } from "@/lib/base-path";
 import { api } from "./api";
 import { FeedbackDrawer } from "./FeedbackDrawer";
+import { NewRequestDialog } from "./NewRequestDialog";
 import { timeAgo } from "./format";
 import { Alert, Button, EmptyState, KindBadge, PageHeader, SearchInput, Select, StatusBadge, Toolbar } from "./ui/primitives";
-import { KINDS, KIND_LABEL, OPEN_STATUSES, STATUSES, STATUS_LABEL } from "@/lib/status";
+import { KINDS, KIND_LABEL, OPEN_STATUSES, PRIORITY_LABEL, STATUSES, STATUS_LABEL, type Priority } from "@/lib/status";
 
 type Item = {
   id: string;
@@ -15,6 +16,7 @@ type Item = {
   kind: string;
   status: string;
   approvedAt: string | null;
+  priority: string | null;
   reporterName: string;
   reporterRole: string | null;
   createdAt: string;
@@ -26,7 +28,8 @@ export type Filters = { project: string; status: string; kind: string; q: string
 
 const OPEN_VALUE = OPEN_STATUSES.join(",");
 
-export function Board({ projects, initial }: { projects: { slug: string; name: string }[]; initial: Filters }) {
+export function Board({ projects, creatable, initial }: { projects: { slug: string; name: string }[]; creatable: { slug: string; name: string }[]; initial: Filters }) {
+  const [creating, setCreating] = useState(false);
   const [project, setProject] = useState(initial.project);
   const [status, setStatus] = useState(initial.status);
   const [kind, setKind] = useState(initial.kind);
@@ -218,7 +221,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
             </Select>
           </>
         }
-        right={<a href={csvHref} download className="inline-flex items-center rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium transition hover:bg-surface-2" title="Tải các góp ý đang lọc (tối đa 5000 dòng) về Excel/CSV">Xuất CSV</a>}
+        right={<>{creatable.length ? <Button onClick={() => setCreating(true)}>Tạo yêu cầu</Button> : null}<a href={csvHref} download className="inline-flex items-center rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium transition hover:bg-surface-2" title="Tải các góp ý đang lọc (tối đa 5000 dòng) về Excel/CSV">Xuất CSV</a></>}
       />
 
       {error ? <Alert tone="error" className="mb-3">{error}</Alert> : null}
@@ -248,6 +251,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
                   <span className="min-w-0 flex-1 basis-64 break-words font-medium leading-snug">{it.title}</span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     <KindBadge kind={it.kind} />
+                    {it.priority && it.priority !== "normal" ? <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${it.priority === "urgent" ? "bg-red-100 text-red-900 dark:bg-red-400/15 dark:text-red-300" : it.priority === "high" ? "bg-amber-100 text-amber-900 dark:bg-amber-400/15 dark:text-amber-300" : "bg-surface-2 text-muted ring-1 ring-inset ring-line"}`}>{PRIORITY_LABEL[it.priority as Priority] ?? it.priority}</span> : null}
                     <StatusBadge status={it.status} />
                     {it.approvedAt ? <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-400/15 dark:text-emerald-300">Đã duyệt</span> : null}
                   </span>
@@ -277,6 +281,7 @@ export function Board({ projects, initial }: { projects: { slug: string; name: s
         <p className="mt-2 text-[13px] text-muted">Phím tắt: j / k chuyển dòng · Enter mở · x chọn · / tìm kiếm.</p>
       ) : null}
 
+      {creating ? <NewRequestDialog open projects={creatable} defaultProject={project} onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); setFocusId(id); setOpenId(id); reload.current(); }} /> : null}
       {openId ? <FeedbackDrawer key={openId} id={openId} onClose={() => setOpenId("")} onChanged={() => reload.current()} onPrev={items && items.findIndex((i) => i.id === openId) > 0 ? () => move(-1) : undefined} onNext={items && items.findIndex((i) => i.id === openId) >= 0 && items.findIndex((i) => i.id === openId) < items.length - 1 ? () => move(1) : undefined} /> : null}
     </>
   );

@@ -167,6 +167,9 @@ model Feedback {
 
   adminNote String?
 
+  /// low | normal | high | urgent — mức ưu tiên do người điều phối đặt (không trả cho người gửi thường).
+  priority String?
+
   // ── Ngữ cảnh ──────────────────────────────────────────────────────────────────────
   pagePath   String?
   pageUrl    String?

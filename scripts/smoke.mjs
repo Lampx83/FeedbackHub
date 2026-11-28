@@ -217,10 +217,10 @@ try {
 
   // ── nhập dữ liệu cũ ───────────────────────────────────────────────────────
   const now = new Date().toISOString();
-  const imp = { items: [{ id: "legacy-1", kind: "function", type: "add", title: "Thêm nút xuất Excel", status: "done", reporterId: "u-staff", reporterName: "Nguyễn Văn A", createdAt: now, updatedAt: now, messages: [{ role: "ai", body: "Đã làm", createdAt: now }] }] };
+  const imp = { items: [{ id: `legacy-${slug}`, kind: "function", type: "add", title: "Thêm nút xuất Excel", status: "done", reporterId: "u-staff", reporterName: "Nguyễn Văn A", createdAt: now, updatedAt: now, messages: [{ role: "ai", body: "Đã làm", createdAt: now }] }] };
   const i1 = await call("POST", `/api/v1/machine/import?project=${slug}`, { key: op.data.key, body: imp });
   const i2 = await call("POST", `/api/v1/machine/import?project=${slug}`, { key: op.data.key, body: imp });
-  ok(i1.data.created === 1 && i2.data.skipped === 1, "nhập dữ liệu cũ, chạy lại không nhân đôi");
+  ok(i1.data.created === 1 && i2.data.skipped === 1, "nhập dữ liệu cũ, chạy lại không nhân đôi", JSON.stringify([i1.status, i1.data, i2.data]));
 
   // ── ảnh chụp trang: cấu hình + ngữ cảnh trang lưu cùng góp ý ───────────────────
   const cfg0 = await call("GET", `/api/v1/config?project=${slug}`);
@@ -300,6 +300,8 @@ try {
   ok(JSON.stringify(mProjects.data.projects.map((p) => p.slug)) === JSON.stringify([slug]) && mProjects.data.projects[0].myRole === "manager", "danh sách dự án chỉ gồm dự án được gán", JSON.stringify(mProjects.data).slice(0, 200));
   ok((await call("GET", `/api/admin/projects/${slug}`, { cookie: M.cookie })).status === 200, "quản trị dự án mở được dự án của mình");
   ok((await call("GET", `/api/admin/projects/${slugB}`, { cookie: M.cookie })).status === 404, "dự án không được gán trả 404 (không lộ sự tồn tại)");
+  const mReq = await call("POST", "/api/admin/feedback", { cookie: M.cookie, body: { project: slug, title: `BA là quản trị dự án ${tag}`, desired: "Hành vi mong muốn đủ dài", criteria: "Tiêu chí kiểm được" } });
+  ok(mReq.status === 200, "quản trị dự án (được gán) tạo được yêu cầu", JSON.stringify(mReq.data));
   ok((await call("PATCH", `/api/admin/projects/${slugB}`, { cookie: M.cookie, body: { name: "Chiếm quyền" } })).status === 404, "không sửa được dự án không được gán");
   ok((await call("PATCH", `/api/admin/projects/${slug}`, { cookie: M.cookie, body: { name: "Smoke đổi tên" } })).status === 200, "quản trị dự án sửa được cài đặt dự án mình");
   ok((await call("GET", `/api/admin/projects/${slug}/secret`, { cookie: M.cookie })).status === 200, "quản trị dự án xem được khoá ký của dự án mình");
@@ -405,6 +407,20 @@ try {
   const bulkO = await call("POST", "/api/admin/feedback/bulk", { cookie: O.cookie, body: { ids: [rid], approved: true } });
   ok(bulkO.data.changed === 0, "duyệt hàng loạt: quản trị dự án khác không duyệt được");
   ok((await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [], approved: true } })).status === 400, "duyệt hàng loạt: danh sách rỗng bị từ chối (400)");
+  // Tạo yêu cầu chỉnh sửa từ bảng quản trị (BA): cần quyền quản trị DỰ ÁN, tiêu chí chấp nhận bắt buộc, vẫn qua cổng duyệt.
+  const reqBody = { project: slug, title: `Yêu cầu của BA ${tag}`, context: "Hiện chưa xuất được báo cáo", desired: "Có nút Xuất ra Excel ở trang báo cáo", criteria: "Bấm Xuất → tải về file .xlsx đủ cột A–F", priority: "high", pagePath: "/reports/weekly" };
+  const baReq = await call("POST", "/api/admin/feedback", { cookie, body: reqBody });
+  ok(baReq.status === 200 && baReq.data.feedback?.priority === "high", "BA tạo yêu cầu từ bảng quản trị", JSON.stringify(baReq.data));
+  const baFb = (await call("GET", `/api/admin/feedback/${baReq.data.feedback?.id}`, { cookie })).data.feedback;
+  ok(baFb?.source === "board" && baFb.status === "pending" && baFb.kind === "function" && baFb.successCriteria.includes("xlsx") && baFb.body.includes("Bối cảnh:") && baFb.body.includes("Hành vi mong muốn:") && baFb.pagePath === "/reports/weekly" && baFb.reporterRole === "console", "yêu cầu của BA: đủ mẫu, nguồn board, chờ xử lý", JSON.stringify(baFb).slice(0, 200));
+  ok(!baFb.approvedAt, "yêu cầu của BA không tự được duyệt (tạo ≠ duyệt)");
+  ok((await call("POST", "/api/admin/feedback", { cookie, body: { ...reqBody, criteria: "" } })).status === 400, "yêu cầu của BA thiếu tiêu chí chấp nhận bị từ chối (400)");
+  ok((await call("POST", "/api/admin/feedback", { cookie, body: { ...reqBody, pagePath: "//evil.example.com" } })).status === 400, "yêu cầu của BA: đường dẫn ngoài bị từ chối (400)");
+  ok((await call("POST", "/api/admin/feedback", { cookie, body: { ...reqBody, priority: "sieu-khan" } })).status === 400, "yêu cầu của BA: mức ưu tiên lạ bị từ chối (400)");
+  ok((await call("POST", "/api/admin/feedback", { cookie: V.cookie, body: reqBody })).status === 403, "người chỉ xem không tạo được yêu cầu (403)");
+  ok((await call("POST", "/api/admin/feedback", { cookie: O.cookie, body: reqBody })).status === 404, "quản trị dự án khác không tạo được yêu cầu (404)");
+  ok((await call("POST", "/api/admin/feedback", { body: reqBody })).status === 401, "tạo yêu cầu cần đăng nhập (401)");
+  ok((await call("POST", "/api/admin/feedback", { key: W2, body: reqBody })).status === 401, "khoá máy không tạo được yêu cầu của BA (401)");
   const mkFb = async (title) => (await call("POST", "/api/v1/feedback", { token: admin, body: { title } })).data.feedback?.id;
   const [b1, b2] = [await mkFb(`Hàng loạt 1 ${tag}`), await mkFb(`Hàng loạt 2 ${tag}`)];
   const bulk = await call("POST", "/api/admin/feedback/bulk", { cookie, body: { ids: [b1, b2, "khong-co-id"], approved: true } });

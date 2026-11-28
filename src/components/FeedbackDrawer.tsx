@@ -8,7 +8,7 @@ import { useLoader } from "./useLoader";
 import { ACTOR_LABEL, ROLE_LABEL, SOURCE_LABEL, VERDICT_LABEL, VERIFY_LABEL } from "./labels";
 import { ConfirmDialog, useOverlay } from "./ui/Modal";
 import { Alert, Badge, Button, KindBadge, Spinner, StatusBadge, Textarea } from "./ui/primitives";
-import { HUMAN_SETTABLE, STATUS_LABEL, type Status } from "@/lib/status";
+import { HUMAN_SETTABLE, PRIORITY_LABEL, STATUS_LABEL, type Priority, type Status } from "@/lib/status";
 
 type Message = { id: string; role: string; authorName: string | null; body: string; kind: string; createdAt: string };
 type FbEvent = { id: string; kind: string; fromStatus: string | null; toStatus: string | null; actor: string; detail: unknown; createdAt: string };
@@ -42,6 +42,7 @@ export type Detail = {
   approvedAt: string | null;
   approvedBy: string | null;
   successCriteria: string | null;
+  priority: string | null;
   planApproval: string | null;
   aiModel: string | null;
   claimedBy: string | null;
@@ -246,6 +247,7 @@ export function FeedbackDrawer({ id, onClose, onChanged, onPrev, onNext }: { id:
                       <code className="font-mono text-[13px]">{fb.contentRef}</code>
                     </Row>
                   ) : null}
+                  {fb.priority ? <Row label="Mức ưu tiên">{PRIORITY_LABEL[fb.priority as Priority] ?? fb.priority}</Row> : null}
                   {fb.successCriteria ? <Row label="Tiêu chí hoàn thành">{fb.successCriteria}</Row> : null}
                 </dl>
                 {hasSuggestion ? (

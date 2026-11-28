@@ -40,6 +40,7 @@ export type CreateInput = {
   extra?: Prisma.InputJsonValue | null;
   source?: string;
   successCriteria?: string | null;
+  priority?: string | null;
   requirePlan?: boolean;
   aiProvider?: string | null;
   aiModel?: string | null;
@@ -95,6 +96,7 @@ export async function createFeedback(project: Project, reporter: Reporter, input
       source: input.source ?? "api",
       refDensity: refDensity({ pagePath, pageTarget, body: input.body }),
       successCriteria: input.successCriteria?.trim() || null,
+      priority: input.priority ?? null,
       planApproval: input.requirePlan ? "requested" : null,
       aiProvider: input.aiProvider ?? null,
       aiModel: input.aiModel ?? null,
@@ -251,7 +253,7 @@ export const canSeeFeedback = (fb: Feedback, project: Project, user: HubUser | n
 
 const INTERNAL_FIELDS = [
   "approvedBy", "claimedBy", "claimedAt", "costUsd", "agentRuns", "scopeViolation", "rolledBack",
-  "reporterEmail", "stopRequestedAt",
+  "reporterEmail", "stopRequestedAt", "priority",
 ] as const;
 
 /** Bỏ các trường vận hành nội bộ (chi phí, ai đang giữ việc, email…) trước khi trả cho người gửi thường. */

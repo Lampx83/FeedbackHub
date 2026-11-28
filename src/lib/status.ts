@@ -48,5 +48,9 @@ export const DEFAULT_TYPES: TypeDef[] = [
   { id: "other", label: "Khác", kind: "other" },
 ];
 
+export const PRIORITIES = ["low", "normal", "high", "urgent"] as const;
+export type Priority = (typeof PRIORITIES)[number];
+export const PRIORITY_LABEL: Record<Priority, string> = { low: "Thấp", normal: "Bình thường", high: "Cao", urgent: "Khẩn" };
+
 export const ACTORS = ["human", "ai", "ai_manual", "system"] as const;
 export type Actor = (typeof ACTORS)[number];
