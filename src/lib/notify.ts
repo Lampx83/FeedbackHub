@@ -4,7 +4,7 @@ import { publicUrl } from "./env";
 import { assertPublicHttpUrl } from "./safe-url";
 import { prisma } from "./prisma";
 import { pushToAdmins } from "./push";
-import { KIND_LABEL } from "./status";
+import { GUARDRAIL_LABEL, KIND_LABEL, type GuardrailKind } from "./status";
 
 export type NotifyConfig = { emails: string[]; webhookUrl: string | null; on: "all" | "bugs" | "off" };
 export const DEFAULT_NOTIFY: NotifyConfig = { emails: [], webhookUrl: null, on: "all" };
@@ -25,9 +25,15 @@ const linkFor = (slug: string, id: string) => `${publicUrl()}/board?project=${en
 const chatSafe = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-export type NotifyEvent = "new" | "reply";
+export type NotifyEvent = "new" | "reply" | "guardrail";
 
-function describe(project: Pick<Project, "slug" | "name">, fb: Pick<Feedback, "id" | "title" | "kind" | "reporterName">, event: NotifyEvent) {
+function describe(project: Pick<Project, "slug" | "name">, fb: Pick<Feedback, "id" | "title" | "kind" | "reporterName"> & Partial<Pick<Feedback, "guardrailKind" | "guardrailDetail">>, event: NotifyEvent) {
+  if (event === "guardrail") {
+    const url = linkFor(project.slug, fb.id);
+    const why = GUARDRAIL_LABEL[fb.guardrailKind as GuardrailKind] ?? fb.guardrailKind ?? "hàng rào an toàn";
+    const detail = fb.guardrailDetail ? ` — ${clip(fb.guardrailDetail.replace(/\s+/g, " "), 200)}` : "";
+    return { icon: "🚧", what: "Hàng rào chặn lượt AI", label: why, url, subject: `🚧 Hàng rào chặn lượt AI · ${project.name}: ${clip(fb.title, 80)}`, text: `Hàng rào chặn lượt AI ở ${project.name}: ${why}${detail}\nYêu cầu: ${clip(fb.title, 200)}\n${url}` };
+  }
   const icon = fb.kind === "bug" ? "🐞" : event === "reply" ? "💬" : "💡";
   const what = event === "reply" ? "Trả lời mới" : fb.kind === "bug" ? "Báo lỗi mới" : "Góp ý mới";
   const label = KIND_LABEL[fb.kind as keyof typeof KIND_LABEL] ?? fb.kind;
@@ -39,7 +45,7 @@ function describe(project: Pick<Project, "slug" | "name">, fb: Pick<Feedback, "i
 export function notifyExternal(project: Project, fb: Feedback, event: NotifyEvent) {
   const cfg = projectNotify(project);
   if (cfg.on === "off") return;
-  if (cfg.on === "bugs" && fb.kind !== "bug") return;
+  if (cfg.on === "bugs" && fb.kind !== "bug" && event !== "guardrail") return;
   void pushToAdmins(project, fb, event).catch(() => {});
   if (!cfg.emails.length && !cfg.webhookUrl) return;
   void sendAll(project, fb, event, cfg).catch(() => {});
@@ -63,7 +69,7 @@ async function postChat(url: string, project: Pick<Project, "slug" | "name">, fb
     method: "POST",
     headers: { "Content-Type": "application/json" },
     // `text` cho Slack/Mattermost/Teams, `content` cho Discord; phần còn lại cho tự động hoá (Zapier, n8n…).
-    body: JSON.stringify({ text: safe, content: safe, event: `feedback.${event}`, project: project.slug, feedback: { id: fb.id, title: fb.title, kind: fb.kind, reporterName: fb.reporterName }, url: d.url }),
+    body: JSON.stringify({ text: safe, content: safe, event: `feedback.${event}`, project: project.slug, feedback: { id: fb.id, title: fb.title, kind: fb.kind, reporterName: fb.reporterName }, ...(event === "guardrail" ? { guardrail: { kind: fb.guardrailKind, detail: fb.guardrailDetail } } : {}), url: d.url }),
     redirect: "manual",
     signal: AbortSignal.timeout(8000),
   }).catch(() => {

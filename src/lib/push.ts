@@ -9,7 +9,7 @@ import { withBase } from "./base-path";
 import { publicUrl } from "./env";
 import { prisma } from "./prisma";
 import { assertPublicHttpUrl } from "./safe-url";
-import { KIND_LABEL } from "./status";
+import { GUARDRAIL_LABEL, KIND_LABEL, type GuardrailKind } from "./status";
 
 export const pushConfigured = () => Boolean(process.env.HUB_VAPID_PUBLIC && process.env.HUB_VAPID_PRIVATE);
 export const vapidPublicKey = () => process.env.HUB_VAPID_PUBLIC ?? "";
@@ -29,7 +29,7 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…`
 const link = (slug: string, id: string) => withBase(`/board?project=${encodeURIComponent(slug)}&id=${encodeURIComponent(id)}`);
 
 /** Đẩy tới mọi thiết bị đã đăng ký của quản trị viên CÒN quyền với dự án (kiểm lúc gửi, không lúc đăng ký). Nền, lỗi bị nuốt. */
-export async function pushToAdmins(project: Pick<Project, "id" | "slug" | "name">, fb: Pick<Feedback, "id" | "title" | "kind" | "reporterName">, event: "new" | "reply") {
+export async function pushToAdmins(project: Pick<Project, "id" | "slug" | "name">, fb: Pick<Feedback, "id" | "title" | "kind" | "reporterName"> & Partial<Pick<Feedback, "guardrailKind">>, event: "new" | "reply" | "guardrail") {
   if (!pushConfigured()) return;
   const subs = await prisma.pushSubscription.findMany({
     where: { admin: { disabled: false, OR: [{ superAdmin: true }, { memberships: { some: { projectId: project.id } } }] } },
@@ -37,8 +37,8 @@ export async function pushToAdmins(project: Pick<Project, "id" | "slug" | "name"
     take: 200,
   });
   if (!subs.length) return;
-  const what = event === "reply" ? "Trả lời mới" : fb.kind === "bug" ? "Báo lỗi mới" : "Góp ý mới";
-  const label = KIND_LABEL[fb.kind as keyof typeof KIND_LABEL] ?? fb.kind;
+  const what = event === "guardrail" ? "Hàng rào chặn lượt AI" : event === "reply" ? "Trả lời mới" : fb.kind === "bug" ? "Báo lỗi mới" : "Góp ý mới";
+  const label = event === "guardrail" ? (GUARDRAIL_LABEL[fb.guardrailKind as GuardrailKind] ?? "hàng rào an toàn") : (KIND_LABEL[fb.kind as keyof typeof KIND_LABEL] ?? fb.kind);
   const payload = JSON.stringify({
     title: `${what} · ${clip(project.name, 40)}`,
     body: `${clip(fb.title, 120)}\n${label} · ${clip(fb.reporterName, 40)}`,

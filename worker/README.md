@@ -29,7 +29,7 @@ test.mjs            kiểm thử trọn vòng với agent giả (KHÔNG chạy c
 7. Cất (không xoá) thay đổi chưa commit còn sót vào `git stash`; ghi mốc lùi `PREV_SHA`.
 8. Ghi tin tiến độ, **chạy agent ở nền**, canh cờ Dừng mỗi 2 giây và trần `agent.timeoutSec`; cắt **cả nhóm tiến trình** (SIGTERM rồi SIGKILL), phần viết dở được cất vào `git stash`.
 9. Lấy chi phí từ JSON `total_cost_usd` → `addCostUsd`, `addAgentRuns: 1`.
-10. **Kiểm phạm vi:** tệp đụng ngoài `allowedPaths` → ghi `scopeViolation`; đụng `protectedPaths` (tệp bí mật) → không giao, giữ mã ở nhánh riêng, `awaiting_user`.
+10. **Kiểm phạm vi:** tệp đụng ngoài `allowedPaths` → ghi `scopeViolation` và báo `guardrail` lên hub (hiện trên thẻ + thông báo); đụng `protectedPaths` (tệp bí mật) → không giao, giữ mã ở nhánh riêng, `awaiting_user`.
 11. Quyết định theo kết quả:
     - Không có commit mới → giữ trạng thái agent đã ghi (`awaiting_user`/`rejected`/`done`); agent im lặng hoặc bị ngắt → `awaiting_user` trung thực, không để treo ở `reviewing`.
     - Có commit nhưng agent bị ngắt giữa chừng/làm lệch nhánh/viết lại lịch sử → **không giao**: commit được giữ ở nhánh `hub/<id>-…`, nhánh gốc về `PREV_SHA`.

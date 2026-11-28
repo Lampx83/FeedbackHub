@@ -1,7 +1,7 @@
 import { transition } from "@/lib/feedback";
 import { json, readBody } from "@/lib/http";
 import { actorOf, authorOf, machineFeedback } from "@/lib/machine-guard";
-import { STATUSES } from "@/lib/status";
+import { GUARDRAIL_KINDS, STATUSES } from "@/lib/status";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -27,6 +27,7 @@ const schema = z.object({
       expectedString: z.string().max(200).nullable().optional(),
       verifyResult: z.enum(["pass", "fail", "skipped"]).optional(),
       scopeViolation: z.string().max(2000).nullable().optional(),
+      guardrail: z.object({ kind: z.enum(GUARDRAIL_KINDS), detail: z.string().max(500) }).nullable().optional(),
       rolledBack: z.boolean().optional(),
       codeDoneAt: z.coerce.date().optional(),
       addCostUsd: z.number().min(0).max(1000).optional(),

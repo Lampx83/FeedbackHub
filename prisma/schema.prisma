@@ -203,6 +203,10 @@ model Feedback {
   verifyResult    String?
   verifiedAt      DateTime?
   scopeViolation  String?
+  /// Hàng rào đã chặn/cảnh báo lượt chạy gần nhất (xem GUARDRAIL_KINDS ở src/lib/status.ts); xoá khi worker nhận việc lại.
+  guardrailKind   String?
+  guardrailDetail String?
+  guardrailAt     DateTime?
   /// accepted | rejected — của người gửi, sau khi thay đổi đã lên thật.
   userVerdict     String?
   userVerdictAt   DateTime?

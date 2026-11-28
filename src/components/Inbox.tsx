@@ -5,6 +5,7 @@ import { api } from "./api";
 import { FeedbackDrawer } from "./FeedbackDrawer";
 import { timeAgo } from "./format";
 import { useLoader } from "./useLoader";
+import { GUARDRAIL_LABEL, type GuardrailKind } from "@/lib/status";
 import { Alert, Button, Card, EmptyState, KindBadge, PageHeader, Select, StatusBadge, Toolbar } from "./ui/primitives";
 
 type Reason = "approval" | "check" | "stuck" | "stale";
@@ -19,7 +20,7 @@ type Item = {
   updatedAt: string;
   project: { slug: string; name: string };
   manage: boolean;
-  detail?: { verifyResult?: string | null; scopeViolation?: string | null; rolledBack?: boolean; claimedAt?: string | null };
+  detail?: { verifyResult?: string | null; scopeViolation?: string | null; guardrailKind?: string | null; guardrailDetail?: string | null; rolledBack?: boolean; claimedAt?: string | null };
 };
 type Data = { counts: Record<Reason | "total", number>; items: Item[] };
 
@@ -33,7 +34,7 @@ const GROUPS: { reason: Reason; title: string; hint: string }[] = [
 function why(it: Item): string {
   const d = it.detail;
   if (it.reason === "check" && d) {
-    return [d.verifyResult === "fail" ? "kiểm chứng trượt" : null, d.scopeViolation ? `ngoài phạm vi: ${d.scopeViolation}` : null, d.rolledBack ? "đã hoàn tác" : null].filter(Boolean).join(" · ");
+    return [d.guardrailKind ? `🚧 ${GUARDRAIL_LABEL[d.guardrailKind as GuardrailKind] ?? d.guardrailKind}` : null, d.verifyResult === "fail" ? "kiểm chứng trượt" : null, d.scopeViolation ? `ngoài phạm vi: ${d.scopeViolation}` : null, d.rolledBack ? "đã hoàn tác" : null].filter(Boolean).join(" · ");
   }
   if (it.reason === "stuck") return `nhận việc ${timeAgo(d?.claimedAt)}`;
   return "";

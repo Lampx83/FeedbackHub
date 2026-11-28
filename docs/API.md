@@ -161,7 +161,7 @@ Sửa/xoá một tin **do máy ghi** (`role` `ai` hoặc `system`) — để b�
   "message": { "role": "ai", "kind": "chat", "body": "Đã đổi đáp án câu 12 thành Hà Nội." },
   "fields": { "expectedString": "Hà Nội", "verifyResult": "pass", "addCostUsd": 0.5, "addAgentRuns": 1 } }
 ```
-`to`: bất kỳ trong sáu trạng thái. `fields` (đều tuỳ chọn): `expectedString`, `verifyResult` (`pass`\|`fail`\|`skipped`), `scopeViolation`, `rolledBack`, `codeDoneAt`, `addCostUsd`, `addAgentRuns`, `clearStop`. **Cố ý không có** `userVerdict` và `planApproval` — phán quyết của người, máy không đặt được (trường lạ bị bỏ qua).
+`to`: bất kỳ trong sáu trạng thái. `fields` (đều tuỳ chọn): `expectedString`, `verifyResult` (`pass`\|`fail`\|`skipped`), `scopeViolation`, `guardrail` (`{ kind, detail }`, `null` để xoá; kind ∈ scope\|protected\|build\|verify\|timeout\|interrupted\|diverged\|unsaved\|backup\|rollback\|error — lưu thành `guardrailKind/Detail/At`, người gửi không thấy, tự xoá khi worker nhận việc lại, và gửi thông báo đẩy/email/webhook `feedback.guardrail`), `rolledBack`, `codeDoneAt`, `addCostUsd`, `addAgentRuns`, `clearStop`. **Cố ý không có** `userVerdict` và `planApproval` — phán quyết của người, máy không đặt được (trường lạ bị bỏ qua).
 
 ### `POST /machine/feedback/{id}/attachments` · `GET /machine/feedback/{id}/attachments/{aid}`
 Đính kèm tệp (multipart `file`) và tải tệp. AI **phải đọc** tệp đính kèm trước khi làm.

@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   const notQ = { kind: { not: "question" } } as const;
   const select = {
     id: true, title: true, kind: true, status: true, reporterName: true, createdAt: true, updatedAt: true, approvedAt: true,
-    verifyResult: true, scopeViolation: true, rolledBack: true, claimedAt: true, projectId: true,
+    verifyResult: true, scopeViolation: true, guardrailKind: true, guardrailDetail: true, rolledBack: true, claimedAt: true, projectId: true,
   } as const;
 
   const [approval, check, stuck, stale] = await Promise.all([
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     prisma.feedback.findMany({
       where: {
         projectId: { in: ids }, ...notQ, status: { not: "rejected" }, updatedAt: { gte: new Date(now - 14 * DAY) },
-        OR: [{ verifyResult: "fail" }, { scopeViolation: { not: null } }, { rolledBack: true }],
+        OR: [{ verifyResult: "fail" }, { scopeViolation: { not: null } }, { guardrailKind: { not: null } }, { rolledBack: true }],
       },
       orderBy: { updatedAt: "desc" }, take: CAP, select,
     }),
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
         id: f.id, reason, title: f.title, kind: f.kind, status: f.status, reporterName: f.reporterName, createdAt: f.createdAt, updatedAt: f.updatedAt,
         project: { slug: p.slug, name: p.name },
         manage: role === "manager",
-        detail: reason === "check" ? { verifyResult: f.verifyResult, scopeViolation: f.scopeViolation, rolledBack: f.rolledBack } : reason === "stuck" ? { claimedAt: f.claimedAt } : undefined,
+        detail: reason === "check" ? { verifyResult: f.verifyResult, scopeViolation: f.scopeViolation, guardrailKind: f.guardrailKind, guardrailDetail: f.guardrailDetail, rolledBack: f.rolledBack } : reason === "stuck" ? { claimedAt: f.claimedAt } : undefined,
       });
     }
   };

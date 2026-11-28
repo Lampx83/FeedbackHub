@@ -86,6 +86,7 @@ Hub **không có bảng người dùng cuối**: danh tính người gửi do �
 | `expectedString` | Chuỗi chữ AI **khai trước** mà sau khi lên thật PHẢI xuất hiện trong bản đang chạy. |
 | `verifyResult` (`pass`/`fail`/`skipped`) và `verifiedAt` | Do **script worker** đặt, không do AI tự đặt. |
 | `scopeViolation` | Ghi nếu lượt chạy đụng tệp ngoài phạm vi cho phép. |
+| `guardrailKind/Detail/At` | Hàng rào an toàn đã chặn hoặc cảnh báo lượt chạy gần nhất (phạm vi, tệp bảo vệ, dựng thử, kiểm chứng, quá hạn, sao lưu, quay lui…). Hiện thành banner trên thẻ yêu cầu và ở hộp «Cần kiểm lại»; đồng thời gửi thông báo cho quản trị dự án. Xoá khi worker nhận việc lại. |
 | `userVerdict` (`accepted`/`rejected`) và `userVerdictAt` | Phán quyết của **người gửi** sau khi thay đổi lên thật. Chỉ người gửi đặt được; **máy không có quyền đặt** (API từ chối trường này), vì máy tự điền là nguỵ tạo bằng chứng. |
 
 **Chạy bằng AI**: `planApproval` (`requested`/`approved`) · `aiProvider` · `aiModel` (phải nằm trong danh sách mô hình của dự án) · `stopRequestedAt` (người gửi bấm "Dừng") · `claimedBy` và `claimedAt` (ai đang giữ việc).

@@ -8,7 +8,7 @@ import { useLoader } from "./useLoader";
 import { ACTOR_LABEL, ROLE_LABEL, SOURCE_LABEL, VERDICT_LABEL, VERIFY_LABEL } from "./labels";
 import { ConfirmDialog, useOverlay } from "./ui/Modal";
 import { Alert, Badge, Button, KindBadge, Spinner, StatusBadge, Textarea } from "./ui/primitives";
-import { HUMAN_SETTABLE, PRIORITY_LABEL, STATUS_LABEL, type Priority, type Status } from "@/lib/status";
+import { GUARDRAIL_LABEL, HUMAN_SETTABLE, PRIORITY_LABEL, type GuardrailKind, STATUS_LABEL, type Priority, type Status } from "@/lib/status";
 
 type Message = { id: string; role: string; authorName: string | null; body: string; kind: string; createdAt: string };
 type FbEvent = { id: string; kind: string; fromStatus: string | null; toStatus: string | null; actor: string; detail: unknown; createdAt: string };
@@ -37,6 +37,9 @@ export type Detail = {
   agentRuns: number;
   costUsd: number;
   rolledBack: boolean;
+  guardrailKind?: string | null;
+  guardrailDetail?: string | null;
+  guardrailAt?: string | null;
   verifyResult: string | null;
   userVerdict: string | null;
   approvedAt: string | null;
@@ -202,6 +205,15 @@ export function FeedbackDrawer({ id, onClose, onChanged, onPrev, onNext }: { id:
           {!fb && !error ? <p className="p-8 text-center text-sm text-muted">Đang tải…</p> : null}
           {fb ? (
             <>
+              {fb.guardrailKind ? (
+                <div className="px-5 pt-4">
+                  <Alert tone="warn">
+                    <p className="font-medium">🚧 Hàng rào an toàn đã chặn lượt AI: {GUARDRAIL_LABEL[fb.guardrailKind as GuardrailKind] ?? fb.guardrailKind}</p>
+                    {fb.guardrailDetail ? <p className="mt-1 whitespace-pre-wrap break-words text-[13px]">{fb.guardrailDetail}</p> : null}
+                    {fb.guardrailAt ? <p className="mt-1 text-[12px] opacity-80">{formatDateTime(fb.guardrailAt)} · xem tin nhắn hệ thống bên dưới để biết nhánh giữ mã (nếu có).</p> : null}
+                  </Alert>
+                </div>
+              ) : null}
               <Section title="Nội dung">
                 <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{fb.body || <span className="text-muted">Không có mô tả chi tiết.</span>}</p>
                 <dl className="mt-3">

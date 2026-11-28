@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const now = new Date();
   const r = await prisma.feedback.updateMany({
     where: { id, status: "pending" },
-    data: { status: "reviewing", claimedBy: holder, claimedAt: now, ...(g.fb.pickedAt ? {} : { pickedAt: now }) },
+    data: { status: "reviewing", claimedBy: holder, claimedAt: now, guardrailKind: null, guardrailDetail: null, guardrailAt: null, ...(g.fb.pickedAt ? {} : { pickedAt: now }) },
   });
   if (r.count === 0) return fail(409, "Góp ý này đã có người nhận hoặc không còn ở hàng đợi");
   await prisma.event.create({

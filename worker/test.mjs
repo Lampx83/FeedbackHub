@@ -345,6 +345,7 @@ try {
   await runWorker(baseCfg());
   const f10 = await getFb(c10.id);
   ok(/secret\/notes\.txt/.test(f10.scopeViolation || ""), "scopeViolation ghi tệp ngoài vùng cho phép", String(f10.scopeViolation));
+  ok(f10.guardrailKind === "scope" && /secret\/notes\.txt/.test(f10.guardrailDetail || ""), "hàng rào ghi guardrail=scope kèm tệp vi phạm", `${f10.guardrailKind} | ${f10.guardrailDetail}`);
 
   // ── (11) sao lưu hỏng → không deploy ─────────────────────────────────────────────────────
   console.log("\n— Ca 11: sao lưu thất bại → KHÔNG deploy —");

@@ -174,6 +174,18 @@ try {
   ok(reply.status === 200 && (await call("GET", `/api/v1/feedback/${id}`, { token: staff })).data.feedback.status === "pending", "trả lời lúc chờ → tự về hàng đợi");
   ok((await call("GET", `/api/v1/feedback/${id}`, { token: staff })).data.feedback.clarifyRounds === 1, "đếm một vòng hỏi lại");
 
+  // hàng rào an toàn: worker báo lý do bị chặn → hub lưu, người gửi không thấy, nhận việc lại thì xoá
+  await call("POST", `/api/v1/machine/feedback/${id}/claim`, { key: W });
+  const badGuard = await call("POST", `/api/v1/machine/feedback/${id}/transition`, { key: W, body: { to: "reviewing", fields: { guardrail: { kind: "khong-co", detail: "x" } } } });
+  ok(badGuard.status === 400, "guardrail với loại lạ bị từ chối (400)");
+  const g1 = await call("POST", `/api/v1/machine/feedback/${id}/transition`, { key: W, body: { to: "pending", fields: { guardrail: { kind: "scope", detail: "Đụng tệp ngoài vùng cho phép: secret/a.txt" } } } });
+  ok(g1.status === 200 && g1.data.feedback.guardrailKind === "scope" && /secret\/a\.txt/.test(g1.data.feedback.guardrailDetail) && g1.data.feedback.guardrailAt, "worker ghi hàng rào đã chặn (kind + chi tiết + giờ)");
+  const gStaff = await call("GET", `/api/v1/feedback/${id}`, { token: staff });
+  ok(gStaff.status === 200 && !("guardrailKind" in gStaff.data.feedback) && !("guardrailDetail" in gStaff.data.feedback), "người gửi không thấy trường hàng rào (nội bộ)");
+  await call("POST", `/api/v1/machine/feedback/${id}/claim`, { key: W });
+  const g2 = await call("GET", `/api/v1/machine/feedback/${id}?project=${slug}`, { key: op.data.key });
+  ok(g2.data.feedback?.guardrailKind === null, "nhận việc lại → xoá hàng rào cũ", JSON.stringify(g2.data).slice(0, 120));
+
   // làm xong
   await call("POST", `/api/v1/machine/feedback/${id}/claim`, { key: W });
   const done = await call("POST", `/api/v1/machine/feedback/${id}/transition`, {

@@ -54,3 +54,21 @@ export const PRIORITY_LABEL: Record<Priority, string> = { low: "Thấp", normal:
 
 export const ACTORS = ["human", "ai", "ai_manual", "system"] as const;
 export type Actor = (typeof ACTORS)[number];
+
+/** Hàng rào đã chặn hoặc cảnh báo một lượt chạy AI (worker báo qua fields.guardrail). */
+export const GUARDRAIL_KINDS = ["scope", "protected", "build", "verify", "timeout", "interrupted", "diverged", "unsaved", "backup", "rollback", "error"] as const;
+export type GuardrailKind = (typeof GUARDRAIL_KINDS)[number];
+
+export const GUARDRAIL_LABEL: Record<GuardrailKind, string> = {
+  scope: "Sửa tệp ngoài phạm vi cho phép",
+  protected: "Đụng tệp được bảo vệ",
+  build: "Dựng thử thất bại",
+  verify: "Kiểm chứng không thấy thay đổi",
+  timeout: "Quá thời gian cho phép",
+  interrupted: "Agent bị ngắt giữa chừng",
+  diverged: "Làm lệch nhánh gốc / viết lại lịch sử",
+  unsaved: "Thay đổi chưa được lưu (commit)",
+  backup: "Sao lưu thất bại, dừng triển khai",
+  rollback: "Triển khai hỏng, hệ thống đã quay lui",
+  error: "Không chạy được agent",
+};

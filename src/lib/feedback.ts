@@ -9,7 +9,7 @@ import type { Feedback, Prisma, Project } from "@prisma/client";
 import { decrypt, hmacHex } from "./crypto";
 import type { HubUser } from "./auth-user";
 import { prisma } from "./prisma";
-import { OPEN_STATUSES, type Actor, type Status } from "./status";
+import { OPEN_STATUSES, type Actor, type GuardrailKind, type Status } from "./status";
 
 export const norm = (s: string | null | undefined) =>
   (s ?? "").normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
@@ -120,6 +120,8 @@ export type MachineFields = {
   expectedString?: string | null;
   verifyResult?: "pass" | "fail" | "skipped";
   scopeViolation?: string | null;
+  /** Hàng rào vừa chặn lượt chạy; null = xoá. */
+  guardrail?: { kind: GuardrailKind; detail: string } | null;
   rolledBack?: boolean;
   codeDoneAt?: Date;
   addCostUsd?: number;
@@ -150,6 +152,7 @@ export async function transition(
     ...(f.expectedString !== undefined ? { expectedString: f.expectedString } : {}),
     ...(f.verifyResult ? { verifyResult: f.verifyResult, verifiedAt: now } : {}),
     ...(f.scopeViolation !== undefined ? { scopeViolation: f.scopeViolation } : {}),
+    ...(f.guardrail === null ? { guardrailKind: null, guardrailDetail: null, guardrailAt: null } : f.guardrail ? { guardrailKind: f.guardrail.kind, guardrailDetail: f.guardrail.detail.slice(0, 500), guardrailAt: now } : {}),
     ...(f.rolledBack !== undefined ? { rolledBack: f.rolledBack } : {}),
     ...(f.codeDoneAt ? { codeDoneAt: f.codeDoneAt } : {}),
     ...(f.addCostUsd ? { costUsd: { increment: f.addCostUsd } } : {}),
@@ -172,6 +175,7 @@ export async function transition(
       : {}),
   };
   const updated = await prisma.feedback.update({ where: { id: fb.id }, data });
+  if (f.guardrail) notifyExternal(project, updated, "guardrail");
   if (fb.status !== to && (to === "awaiting_user" || to === "done" || to === "rejected")) {
     dispatchWebhook(project, "feedback.status", updated);
   }
@@ -252,7 +256,7 @@ export const canSeeFeedback = (fb: Feedback, project: Project, user: HubUser | n
   !!user && (fb.reporterId === user.uid || (!!user.role && project.adminRoles.includes(user.role)));
 
 const INTERNAL_FIELDS = [
-  "approvedBy", "claimedBy", "claimedAt", "costUsd", "agentRuns", "scopeViolation", "rolledBack",
+  "approvedBy", "claimedBy", "claimedAt", "costUsd", "agentRuns", "scopeViolation", "rolledBack", "guardrailKind", "guardrailDetail", "guardrailAt",
   "reporterEmail", "stopRequestedAt", "priority",
 ] as const;
 

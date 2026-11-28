@@ -253,6 +253,7 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 // ── Báo cáo lên hub ─────────────────────────────────────────────────────────────────────────
 /** Trường máy dồn lại để gắn vào lần chuyển trạng thái ĐẦU TIÊN sau lượt agent (chi phí, phạm vi…). */
 let pendingFields = {};
+const guard = (kind, detail) => { pendingFields.guardrail = { kind, detail: String(detail || "").replace(/\s+/g, " ").slice(0, 480) }; };
 const takeFields = (extra = {}) => { const f = { ...pendingFields, ...extra }; pendingFields = {}; return f; };
 
 async function report(id, to, { note, message, fields } = {}) {
@@ -558,6 +559,7 @@ async function afterAgent({ id, prev, base, dirtyBefore, run }) {
     if (out.length) {
       log(`CẢNH BÁO PHẠM VI: lượt chạy đụng vào tệp ngoài vùng cho phép: ${out.slice(0, 5).join(", ")}`);
       pendingFields.scopeViolation = out.slice(0, 20).join("\n").slice(0, 2000);
+      guard("scope", `Đụng tệp ngoài vùng cho phép: ${out.slice(0, 5).join(", ")}${out.length > 5 ? ` (+${out.length - 5})` : ""}`);
     }
   }
   // Tệp bí mật bị sửa mà chưa commit → khôi phục ngay.
@@ -580,7 +582,9 @@ async function afterAgent({ id, prev, base, dirtyBefore, run }) {
   const declared = run.declared?.status === "done";
   const status = fb?.status;
   const normalExit = run.code === 0 && !run.timedOut && !run.spawnErr;
+  const FAIL_KIND = { loi: "error", "chua-luu": "unsaved", ngat: run.timedOut ? "timeout" : "interrupted", lech: "diverged", bimat: "protected" };
   const fail = async (tag, note, message) => {
+    if (FAIL_KIND[tag]) guard(FAIL_KIND[tag], note);
     // Giữ mã đã viết ở một nhánh để người phụ trách xem; kho về đúng mốc cũ; cây làm việc sạch.
     shelveDirty(tag, dirtyBefore);
     const br = hasCommit ? preserve(id, `-${tag}`, newSha) : null;
@@ -647,7 +651,9 @@ async function deliver({ id, prev, base, newSha, fb, declared }) {
     if (hubLevel !== level) log(`Hub đặt deliver=${hubLevel} nhưng maxDeliver cục bộ=${cfg.maxDeliver} → giao theo "${level}".`);
   } catch (e) { log(`Không đọc được mức giao từ hub (${e.message}) → dùng "branch".`); }
 
+  const REJECT_KIND = { "-loi-dung": "build", "-khong-sao-luu": "backup" };
   const reject = async (tag, note, message) => {
+    if (REJECT_KIND[tag]) guard(REJECT_KIND[tag], note);
     const br = preserve(id, tag, newSha);
     restoreBase(base, prev);
     await report(id, "awaiting_user", { note: `${note} Mã được giữ ở nhánh ${br}.`, message: { body: message } });
@@ -668,6 +674,7 @@ async function deliver({ id, prev, base, newSha, fb, declared }) {
     const verify = await verifyClaim(expected, { allowCmd: false });
     if (verify === "fail") {
       log(`✗ ${id}: kiểm chứng THẤT BẠI (nhánh).`);
+      guard("verify", "Không tìm thấy thay đổi mà trợ lý báo là đã làm (bản dựng nhánh).");
       const br = preserve(id, "", newSha);
       restoreBase(base, prev);
       await report(id, "awaiting_user", {
@@ -709,6 +716,7 @@ async function deliver({ id, prev, base, newSha, fb, declared }) {
     const verify = await verifyClaim(expected, { allowCmd: true });
     if (verify === "fail") {
       log(`✗ ${id}: kiểm chứng THẤT BẠI sau triển khai.`);
+      guard("verify", "Không tìm thấy thay đổi mà trợ lý báo là đã làm (sau triển khai).");
       await report(id, "awaiting_user", {
         note: "Hệ thống KHÔNG tìm thấy thay đổi mà trợ lý báo là đã làm. Yêu cầu được mở lại để kiểm tra.",
         message: { kind: "system", body: "Đã kiểm tra lại trên hệ thống thật và KHÔNG thấy thay đổi như trợ lý báo cáo. Yêu cầu được mở lại, chưa coi là hoàn thành." },
@@ -733,6 +741,7 @@ async function deliver({ id, prev, base, newSha, fb, declared }) {
     log("✗✗ NGHIÊM TRỌNG: quay về bản cũ vẫn không lên. CẦN NGƯỜI XỬ LÝ NGAY.");
     note = "NGHIÊM TRỌNG: triển khai hỏng và quay lui cũng không cứu được. Cần xử lý thủ công ngay.";
   }
+  guard("rollback", note);
   await report(id, "awaiting_user", {
     note,
     message: { body: "Bản cập nhật gặp sự cố nên hệ thống đã được đưa về trạng thái trước đó; thay đổi của bạn chưa được áp dụng. Người phụ trách sẽ kiểm tra." },
