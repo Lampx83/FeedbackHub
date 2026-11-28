@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AccountPanel } from "@/components/AccountPanel";
 import { requireAdminPage } from "../auth";
 
-export const metadata = { title: "Tài khoản của tôi — Feedback Hub" };
+export const metadata = { title: "Tài khoản của tôi" };
 
 export default async function AccountPage() {
   const admin = await requireAdminPage();

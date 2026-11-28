@@ -3,7 +3,7 @@ import { Inbox } from "@/components/Inbox";
 import { projectFilter, projectScope } from "@/lib/admin-access";
 import { requireAdminPage } from "../auth";
 
-export const metadata = { title: "Cần quyết định — Feedback Hub" };
+export const metadata = { title: "Cần quyết định" };
 
 export default async function InboxPage() {
   const admin = await requireAdminPage();

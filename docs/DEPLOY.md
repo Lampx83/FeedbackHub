@@ -31,6 +31,7 @@ openssl rand -base64 32     # → HUB_ENCRYPTION_KEY
 | `AUTH_SECRET` | ✔ | Khoá ký cookie đăng nhập bảng điều khiển (≥ 16 ký tự). Đổi ⇒ mọi người đăng nhập lại |
 | `HUB_ENCRYPTION_KEY` | ✔ | Khoá mã hoá các khoá ký token của dự án trong DB (≥ 16 ký tự). **Mất hoặc đổi ⇒ mọi khoá ký phải cấp lại.** Sao lưu riêng |
 | `HUB_ADMIN_EMAIL`, `HUB_ADMIN_PASSWORD` | ✔ lần đầu | Tài khoản quản trị đầu tiên (mật khẩu ≥ 8 ký tự). Chỉ tạo khi **chưa có** ai; chạy lại không ghi đè mật khẩu. Sau khi đăng nhập được nên xoá `HUB_ADMIN_PASSWORD` khỏi `.env` |
+| `HUB_NAME` | không | Tên hiển thị của hệ thống (đầu trang, tiêu đề tab, đăng nhập, email/thông báo). Mặc định "Feedback Hub"; đổi không cần dựng lại, chỉ `docker compose up -d` |
 | `HUB_PUBLIC_URL` | nên | Địa chỉ công khai có `https://` (kèm tiền tố nếu có), để in đúng đoạn mã nhúng |
 | `HUB_BASE_PATH` | | Tiền tố khi chạy dưới đường dẫn con, vd. `/feedbackhub`. Đặt LÚC BUILD |
 | `HUB_PORT` | | Cổng trên máy chủ (mặc định `3100`, chỉ mở cho `127.0.0.1`) |

@@ -40,7 +40,7 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { adminName: string; adminEmail: string; superAdmin: boolean; children: React.ReactNode }) {
+export function ConsoleShell({ hubName, adminName, adminEmail, superAdmin, children }: { hubName: string; adminName: string; adminEmail: string; superAdmin: boolean; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -93,7 +93,7 @@ export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { 
     <div className="min-h-dvh md:flex">
       {/* Thanh đầu trang trên điện thoại */}
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-2.5 md:hidden">
-        <span className="font-semibold">Feedback Hub</span>
+        <span className="font-semibold">{hubName}</span>
         <span className="flex items-center gap-1">
         {desktop ? null : <NotificationBell />}
         <button type="button" aria-label="Mở menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="rounded-md p-1.5 hover:bg-surface-2">
@@ -108,7 +108,7 @@ export function ConsoleShell({ adminName, adminEmail, superAdmin, children }: { 
       {/* Thanh bên trên máy tính */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="flex items-center justify-between px-5 py-3 text-base font-semibold tracking-tight">
-          Feedback Hub
+          {hubName}
           {desktop ? <NotificationBell /> : null}
         </div>
         {nav}

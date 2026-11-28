@@ -5,7 +5,7 @@ import { ProjectGrid } from "@/components/ProjectGrid";
 import { projectFilter, projectScope } from "@/lib/admin-access";
 import { requireAdminPage } from "./auth";
 
-export const metadata = { title: "Tổng quan — Feedback Hub" };
+export const metadata = { title: "Tổng quan" };
 
 export default async function OverviewPage() {
   const admin = await requireAdminPage();

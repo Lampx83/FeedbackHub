@@ -3,7 +3,7 @@ import { Board } from "@/components/Board";
 import { allows, projectFilter, projectScope } from "@/lib/admin-access";
 import { requireAdminPage } from "../auth";
 
-export const metadata = { title: "Góp ý — Feedback Hub" };
+export const metadata = { title: "Góp ý" };
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

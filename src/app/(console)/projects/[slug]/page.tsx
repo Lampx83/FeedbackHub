@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import { roleOn } from "@/lib/admin-access";
 import { requireAdminPage } from "../../auth";
 
-export const metadata = { title: "Cài đặt dự án — Feedback Hub" };
+export const metadata = { title: "Cài đặt dự án" };
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 

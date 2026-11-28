@@ -1,7 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { hubName } from "@/lib/env";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "Feedback Hub — Bảng điều khiển" };
+// Đọc tên lúc chạy (HUB_NAME), không đóng băng lúc dựng.
+export const dynamic = "force-dynamic";
+export function generateMetadata(): Metadata {
+  const n = hubName();
+  return { title: { default: `${n} — Bảng điều khiển`, template: `%s — ${n}` } };
+}
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -16,3 +16,5 @@ export const encryptionKey = () => secret("HUB_ENCRYPTION_KEY");
 export const dataDir = () => process.env.HUB_DATA_DIR || "./data";
 /** Địa chỉ công khai của hub — để in vào đoạn mã nhúng. */
 export const publicUrl = () => (process.env.HUB_PUBLIC_URL || "").replace(/\/$/, "");
+/** Tên hiển thị của hệ thống (đặt HUB_NAME để mỗi nơi triển khai một tên). Chỉ là nhãn: URL, khoá và biến môi trường giữ nguyên. */
+export const hubName = () => (process.env.HUB_NAME || "").replace(/\s+/g, " ").trim().slice(0, 60) || "Feedback Hub";

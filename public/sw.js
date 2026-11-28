@@ -5,7 +5,7 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener("push", (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch { d = {}; }
-  const title = typeof d.title === "string" ? d.title.slice(0, 120) : "Feedback Hub";
+  const title = typeof d.title === "string" ? d.title.slice(0, 120) : "Thông báo";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: typeof d.body === "string" ? d.body.slice(0, 300) : "",

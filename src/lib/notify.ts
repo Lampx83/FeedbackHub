@@ -1,6 +1,6 @@
 import type { Feedback, Project } from "@prisma/client";
 import nodemailer from "nodemailer";
-import { publicUrl } from "./env";
+import { hubName, publicUrl } from "./env";
 import { assertPublicHttpUrl } from "./safe-url";
 import { prisma } from "./prisma";
 import { pushToAdmins } from "./push";
@@ -56,7 +56,7 @@ async function sendAll(project: Project, fb: Feedback, event: NotifyEvent, cfg: 
   const jobs: Promise<unknown>[] = [];
   if (cfg.emails.length && mailConfigured()) {
     // Văn bản thuần: nội dung góp ý là dữ liệu không đáng tin, không dựng HTML từ nó.
-    jobs.push(mailer().sendMail({ from: process.env.HUB_MAIL_FROM, to: cfg.emails, subject: d.subject.replace(/[\r\n]+/g, " "), text: `${d.text}\n\n— Feedback Hub` }));
+    jobs.push(mailer().sendMail({ from: process.env.HUB_MAIL_FROM, to: cfg.emails, subject: d.subject.replace(/[\r\n]+/g, " "), text: `${d.text}\n\n— ${hubName()}` }));
   }
   if (cfg.webhookUrl) jobs.push(postChat(cfg.webhookUrl, project, fb, event, d));
   await Promise.allSettled(jobs);
@@ -82,12 +82,12 @@ async function postChat(url: string, project: Pick<Project, "slug" | "name">, fb
 /** Gửi thử (nút "Gửi thử" ở cài đặt): trả lỗi cụ thể thay vì nuốt. */
 export async function sendTest(project: Project): Promise<{ email: string; webhook: string }> {
   const cfg = projectNotify(project);
-  const fake = { id: "test", title: "Thông báo thử từ Feedback Hub", kind: "other", reporterName: "Feedback Hub" } as Feedback;
+  const fake = { id: "test", title: `Thông báo thử từ ${hubName()}`, kind: "other", reporterName: hubName() } as Feedback;
   const d = describe(project, fake, "new");
   const out = { email: "chưa cấu hình", webhook: "chưa cấu hình" };
   if (cfg.emails.length) {
     if (!mailConfigured()) out.email = "máy chủ chưa cấu hình SMTP (HUB_SMTP_URL, HUB_MAIL_FROM)";
-    else out.email = await mailer().sendMail({ from: process.env.HUB_MAIL_FROM, to: cfg.emails, subject: d.subject, text: `${d.text}\n\n— Feedback Hub` }).then(() => "đã gửi", (e) => `lỗi: ${String(e.message ?? e).slice(0, 160)}`);
+    else out.email = await mailer().sendMail({ from: process.env.HUB_MAIL_FROM, to: cfg.emails, subject: d.subject, text: `${d.text}\n\n— ${hubName()}` }).then(() => "đã gửi", (e) => `lỗi: ${String(e.message ?? e).slice(0, 160)}`);
   }
   if (cfg.webhookUrl) out.webhook = await postChat(cfg.webhookUrl, project, fake, "new", d).then(() => "đã gửi", (e) => `lỗi: ${String(e.message ?? e).slice(0, 160)}`);
   return out;
